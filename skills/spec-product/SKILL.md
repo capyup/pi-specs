@@ -1,0 +1,111 @@
+---
+name: spec-product
+description: Write or revise a behavior-first PRODUCT.md product spec for a feature, API, workflow, CLI, UI, or data surface. Use whenever the user asks for a PRD, desired behavior doc, product spec, PRODUCT.md, ready-to-spec work, or wants to clarify feature behavior before implementation.
+---
+
+# Product Spec Writer
+
+Write `PRODUCT.md` specs that make desired behavior unambiguous enough for an agent or engineer to implement without guessing.
+
+## Scope
+
+A product spec describes the surface from the consumer's point of view:
+
+- UI feature: what the human sees, does, and experiences
+- API/protocol/library: what callers can rely on
+- CLI/developer tool: what the operator invokes and gets back
+- data model: what readers/writers can assume
+
+Avoid internal implementation details. Put implementation plans, test strategy, and validation mechanics in `TECH.md`.
+
+## Before writing
+
+Use existing context first. If needed, ask concise questions about:
+
+- ticket or feature id for the spec directory
+- target users/callers
+- desired behavior and non-goals
+- edge cases and compatibility constraints
+- Figma/mock/design reference for UI or interaction work
+- whether this should follow an existing repo-specific spec format
+
+For UI or interaction features, ask whether a Figma/mock exists unless the user already said no. If none exists, note `Figma: none provided` in the spec so the absence is explicit.
+
+## File location
+
+Follow the repository's existing convention when present. Default:
+
+```text
+specs/<ticket-or-feature-id>/PRODUCT.md
+```
+
+If no id is available, ask for one or suggest a short kebab-case feature id. If the `spec_scaffold` tool is available, use it when creating a new spec directory.
+
+## Required structure
+
+Use this structure unless the repo already has a stronger convention:
+
+```markdown
+# Product Spec: <title>
+
+Issue: <link or id, optional>
+Figma: <link or "none provided", when relevant>
+
+## Summary
+
+1-3 sentences describing the feature and desired outcome.
+
+## Behavior
+
+1. Numbered, testable invariant.
+2. Numbered, testable invariant.
+3. ...
+```
+
+Optional sections, only when they add signal:
+
+- `## Problem` - motivation when not obvious
+- `## Goals / Non-goals` - scope boundaries when ambiguity exists
+- `## Open questions` - unresolved choices that block or affect implementation
+
+Avoid empty placeholder sections. Do not add a separate Validation or Testing section unless the repository's existing style requires it; validation belongs in `TECH.md`.
+
+## Behavior section guidance
+
+Behavior is the core of the product spec. Write numbered invariants that cover:
+
+- default happy path
+- all user-visible states and transitions
+- inputs and responses
+- empty, error, loading, pending, and cancellation states
+- offline, permission, timeout, stale data, and concurrency/race cases when relevant
+- keyboard, focus, and accessibility expectations for UI work
+- compatibility with existing links/settings/storage/API callers
+- what must not regress
+
+Prefer concrete observable statements:
+
+Good:
+
+```markdown
+1. When the user opens Settings and searches "warp agent", the renamed subpage appears in the results.
+2. Existing deep links that use the old "Oz" section id still navigate to the renamed page.
+```
+
+Weak:
+
+```markdown
+1. Search should work well.
+2. Compatibility should be preserved.
+```
+
+## Output discipline
+
+When drafting for the user, write the file and summarize:
+
+- path written
+- key behavior decisions captured
+- open questions, if any
+- suggested next step, usually `TECH.md` via the `spec-tech` skill
+
+When revising an existing product spec, preserve decisions that are still valid and update only the stale behavior.
