@@ -21,9 +21,5 @@
     "prompts": [
       "./prompts"
     ]
-  },
-  "peerDependencies": {
-    "@mariozechner/pi-coding-agent": "*",
-    "typebox": "*"
   }
 }
