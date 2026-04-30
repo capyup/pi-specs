@@ -1,6 +1,6 @@
 {
   "name": "pi-spec-driven-dev",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "description": "Pi package for spec-driven development workflows: product specs, tech specs, implementation, and spec audits.",
   "type": "module",
   "keywords": [
