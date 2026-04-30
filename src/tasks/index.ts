@@ -80,7 +80,8 @@ export function registerTasks(pi: ExtensionAPI): void {
   let activeStorePath = resolveStorePath();
   const tracker = new ProcessTracker();
   const widget = new TaskWidget(store);
-  const autoClear = new AutoClearManager(() => store, () => cfg.autoClearCompleted ?? "on_list_complete", AUTO_CLEAR_DELAY);
+  const defaultAutoClear = () => taskScope === "spec" ? "never" : "on_list_complete";
+  const autoClear = new AutoClearManager(() => store, () => cfg.autoClearCompleted ?? defaultAutoClear(), AUTO_CLEAR_DELAY);
 
   let latestCtx: ExtensionContext | undefined;
   let cascadeConfig: { additionalContext?: string; model?: string; maxTurns?: number } | undefined;
@@ -237,7 +238,7 @@ export function registerTasks(pi: ExtensionAPI): void {
     persistedTasksShown = true;
     const tasks = store.list();
     if (tasks.length === 0) return;
-    if (!isResume && tasks.every((task) => task.status === "completed")) {
+    if (taskScope !== "spec" && !isResume && tasks.every((task) => task.status === "completed")) {
       store.clearCompleted();
       if (taskScope === "session") store.deleteFileIfEmpty();
     } else {

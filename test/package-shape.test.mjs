@@ -11,7 +11,7 @@ test("package manifest exposes local pi resources and task runtime peers", async
   assert.equal(pkg.name, "pi-spec-driven-dev");
   assert.deepEqual(pkg.pi.extensions, ["./extensions/*.ts"]);
   assert.deepEqual(pkg.pi.skills, ["./skills"]);
-  assert.deepEqual(pkg.pi.prompts, ["./prompts"]);
+  assert.equal(pkg.pi.prompts, undefined);
   assert.equal(pkg.peerDependencies["@mariozechner/pi-coding-agent"], "*");
   assert.equal(pkg.peerDependencies["@mariozechner/pi-tui"], "*");
   assert.equal(pkg.peerDependencies.typebox, "*");
@@ -33,15 +33,15 @@ test("skills have matching frontmatter names", async () => {
   }
 });
 
-test("extension registers spec commands, task manager, and no duplicate spec-workflow prompt remains", async () => {
+test("extension registers spec commands, task manager, and no prompt template commands remain", async () => {
   const extension = await readText("extensions/spec-driven-dev.ts");
   assert.match(extension, /registerTasks\(pi\)/);
   for (const command of ["spec-workflow", "spec-product", "spec-tech", "spec-implement", "spec-audit", "spec-help"]) {
     assert.match(extension, new RegExp(command));
   }
 
-  const prompts = await readdir(new URL("prompts/", root));
-  assert.ok(!prompts.includes("spec-workflow.md"), "spec-workflow prompt would duplicate the extension command");
+  const prompts = await readdir(new URL("prompts/", root)).catch((err) => err.code === "ENOENT" ? [] : Promise.reject(err));
+  assert.deepEqual(prompts.filter((name) => name.endsWith(".md")), []);
 });
 
 test("built-in task manager source covers documented tools and storage behavior", async () => {
@@ -55,6 +55,7 @@ test("built-in task manager source covers documented tools and storage behavior"
   assert.match(taskIndex, /specDir/);
   assert.match(taskIndex, /subagents:rpc:spawn/);
   assert.match(taskIndex, /SYSTEM_REMINDER/);
+  assert.match(taskIndex, /taskScope !== "spec"/);
 
   const store = await readText("src/tasks/task-store.ts");
   assert.match(store, /acquireLock/);
@@ -103,15 +104,15 @@ test("builtin task workflow specs are checked in and behavior-focused", async ()
   assert.doesNotMatch(tasks, /pi-spec-tasks-db/);
 });
 
-test("AGENTS and prompts document convention discovery and steering alignment", async () => {
+test("AGENTS and skills document convention discovery and steering alignment", async () => {
   const agents = await readText("AGENTS.md");
   assert.match(agents, /Spec directories live under `specs`/);
   assert.match(agents, /YYYY-MM-DD-kebab-feature/);
   assert.match(agents, /PRODUCT\.md.*TECH\.md.*TASKS\.md/);
+  assert.match(agents, /Before every commit, bump the package patch version by exactly one/);
 
-  for (const prompt of ["write-product-spec.md", "write-tech-spec.md", "implement-spec.md", "audit-specs.md"]) {
-    const text = await readText(`prompts/${prompt}`);
-    assert.match(text, /AGENTS\.md/);
-    assert.match(text, /TASKS\.md|TASKS/i);
+  for (const skill of ["spec-driven-dev", "spec-product", "spec-tech", "spec-implement", "spec-audit"]) {
+    const text = await readText(`skills/${skill}/SKILL.md`);
+    assert.match(text, /AGENTS\.md|TASKS\.md|PRODUCT\.md/s);
   }
 });

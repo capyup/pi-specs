@@ -57,18 +57,11 @@ By default, spec-driven tasks are stored in the active spec directory as `TASKS.
 
 Tasks can also be stored in memory, per session, or project-wide under `.pi/tasks/`; settings live in `.pi/tasks-config.json`. `PI_TASKS=off`, named lists, and explicit paths are supported for automation or shared coordination.
 
-### Prompt Templates
+### Command Palette
 
-Prompt templates are included as fallback/manual entry points:
+The canonical slash commands are the extension commands listed above. This package intentionally does not ship prompt templates, because template commands would duplicate the same workflows in the command palette.
 
-```text
-/write-product-spec <feature>
-/write-tech-spec <feature>
-/implement-spec <spec directory>
-/audit-specs <area>
-```
-
-Prompt templates intentionally avoid names used by extension commands so command lists show one canonical entry for each slash command.
+Pi may still show `skill:spec-*` entries when `enableSkillCommands` is enabled. Those are pi's direct skill invocation commands, not separate workflows; use `/spec-*` as the normal entry points.
 
 ## Install
 
@@ -229,11 +222,6 @@ pi-spec-driven-dev/
 │       ├── tasks-config.ts
 │       ├── types.ts
 │       └── ui/
-├── prompts/
-│   ├── audit-specs.md
-│   ├── implement-spec.md
-│   ├── write-product-spec.md
-│   └── write-tech-spec.md
 ├── test/
 │   ├── package-shape.test.mjs
 │   └── task-store.test.mjs

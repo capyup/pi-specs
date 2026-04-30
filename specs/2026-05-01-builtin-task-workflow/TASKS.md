@@ -11,3 +11,5 @@ Legend: `[ ]` pending, `[ ] [in_progress]` in progress, `[x]` completed.
 - [x] #5 [completed] Move task database into spec TASKS.md; blocked by #3, #4
 - [x] #6 [completed] Switch TASKS.md to pure Markdown todos; blocked by #1; blocks #7
 - [x] #7 [completed] Add AGENTS discovery, date naming, steering alignment, and task repair scripts; blocked by #6
+- [x] #8 [completed] Remove duplicate prompt template commands; blocks #9
+- [x] #9 [completed] Prevent spec TASKS.md auto-clear during startup; blocked by #8
