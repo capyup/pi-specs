@@ -39,14 +39,13 @@ The extension also registers helper tools that the model can call when useful:
 Prompt templates are included as fallback/manual entry points:
 
 ```text
-/spec-workflow <feature>
 /write-product-spec <feature>
 /write-tech-spec <feature>
 /implement-spec <spec directory>
 /audit-specs <area>
 ```
 
-If an extension command and prompt template share a name, pi runs the extension command first.
+Prompt templates intentionally avoid names used by extension commands so command lists show one canonical entry for each slash command.
 
 ## Install
 
@@ -192,7 +191,6 @@ pi-spec-driven-dev/
 ├── prompts/
 │   ├── audit-specs.md
 │   ├── implement-spec.md
-│   ├── spec-workflow.md
 │   ├── write-product-spec.md
 │   └── write-tech-spec.md
 └── skills/
