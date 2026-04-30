@@ -46,7 +46,7 @@ Follow the repository's existing convention when present. Read local `AGENTS.md`
 ```text
 specs/YYYY-MM-DD-kebab-feature/PRODUCT.md
 specs/YYYY-MM-DD-kebab-feature/TECH.md
-specs/YYYY-MM-DD-kebab-feature/TASKS.md
+specs/YYYY-MM-DD-kebab-feature/TASKS.yaml
 ```
 
 If the user agrees to a newly inferred default, ensure `AGENTS.md` records the spec root and `YYYY-MM-DD-kebab-feature` format in short sentences. If the `spec_scaffold` tool is available, use it when creating a new spec directory.
@@ -118,4 +118,4 @@ When drafting for the user, write the file and summarize:
 - open questions, if any
 - suggested next step, usually `TECH.md` via the `spec-tech` skill
 
-When revising an existing product spec, preserve decisions that are still valid and update only the stale behavior. If the revision comes from mid-workflow user steering, update `PRODUCT.md` first and call out that `TECH.md` and `TASKS.md` may need follow-up updates before implementation continues.
+When revising an existing product spec, preserve decisions that are still valid and update only the stale behavior. If the revision comes from mid-workflow user steering, update `PRODUCT.md` first and call out that `TECH.md` and `TASKS.yaml` may need follow-up updates before implementation continues.

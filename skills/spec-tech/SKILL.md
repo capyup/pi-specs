@@ -9,7 +9,7 @@ Translate product intent into an implementation plan that fits the existing code
 
 ## Preconditions
 
-Prefer to have a sibling `PRODUCT.md` first. For existing work, also look for sibling `TASKS.md` so implementation planning can preserve current progress. If no product spec exists, either:
+Prefer to have a sibling `PRODUCT.md` first. For existing work, also look for sibling `TASKS.yaml` so implementation planning can preserve current progress. If no product spec exists, either:
 
 - ask whether to draft a product spec first, or
 - proceed only when the task is purely technical and behavior is already settled.
@@ -110,7 +110,7 @@ Be concrete about:
 
 Prefer repo-native patterns over generic architecture advice.
 
-For work that will be implemented by an agent or split across phases, include a compact task breakdown that can be translated directly into sibling `TASKS.md` Markdown todos. Name dependencies explicitly, for example `implementation depends on approved TECH.md` or `validation depends on code changes`.
+For work that will be implemented by an agent or split across phases, include a compact task breakdown that can be translated directly into sibling `TASKS.yaml` entries. Name dependencies explicitly, for example `implementation depends on approved TECH.md` or `validation depends on code changes`.
 
 ## Testing and validation section
 

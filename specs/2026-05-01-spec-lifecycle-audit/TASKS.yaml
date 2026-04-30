@@ -1,0 +1,45 @@
+version: 1
+next_id: 8
+tasks:
+  - id: "1"
+    status: "completed"
+    subject: "Capture lifecycle and audit product behavior"
+    description: "Capture lifecycle and audit product behavior"
+    blocks: ["2"]
+    blocked_by: []
+  - id: "2"
+    status: "completed"
+    subject: "Draft implementation plan"
+    description: "Draft implementation plan"
+    blocks: ["4"]
+    blocked_by: ["1"]
+  - id: "3"
+    status: "pending"
+    subject: "Review and approve lifecycle audit spec"
+    description: "Review and approve lifecycle audit spec"
+    blocks: []
+    blocked_by: ["4", "5", "6", "7"]
+  - id: "4"
+    status: "completed"
+    subject: "Add spec-only task guard and lifecycle registry requirements"
+    description: "Add spec-only task guard and lifecycle registry requirements"
+    blocks: ["3", "5"]
+    blocked_by: ["2"]
+  - id: "5"
+    status: "completed"
+    subject: "Switch lifecycle registry and settings from Markdown to YAML"
+    description: "Switch lifecycle registry and settings from Markdown to YAML"
+    blocks: ["3", "6"]
+    blocked_by: ["4"]
+  - id: "6"
+    status: "completed"
+    subject: "Switch spec task database to TASKS.yaml"
+    description: "Switch spec task database to TASKS.yaml"
+    blocks: ["3", "7"]
+    blocked_by: ["5"]
+  - id: "7"
+    status: "completed"
+    subject: "Document no-args spec-audit focused target resolution"
+    description: "Document no-args spec-audit focused target resolution"
+    blocks: ["3"]
+    blocked_by: ["6"]

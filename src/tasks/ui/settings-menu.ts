@@ -21,7 +21,7 @@ export async function openSettingsMenu(
         id: "taskScope",
         label: "Task storage",
         description:
-          "spec: TASKS.md inside the active spec directory. memory: in-memory only. " +
+          "spec: TASKS.yaml inside the active spec directory. memory: in-memory only. " +
           "session: per-session file. project: shared project file. Takes effect on next session start.",
         currentValue: cfg.taskScope ?? "spec",
         values: ["spec", "memory", "session", "project"],

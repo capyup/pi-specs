@@ -39,6 +39,9 @@ test("extension registers spec commands, task manager, and no prompt template co
   for (const command of ["spec-workflow", "spec-product", "spec-tech", "spec-implement", "spec-audit", "spec-help"]) {
     assert.match(extension, new RegExp(command));
   }
+  assert.match(extension, /specs\/SPECS\.yaml/);
+  assert.match(extension, /focused spec/);
+  assert.doesNotMatch(extension, /Ask for the missing details needed/);
 
   const prompts = await readdir(new URL("prompts/", root)).catch((err) => err.code === "ENOENT" ? [] : Promise.reject(err));
   assert.deepEqual(prompts.filter((name) => name.endsWith(".md")), []);
@@ -51,7 +54,7 @@ test("built-in task manager source covers documented tools and storage behavior"
   }
   assert.match(taskIndex, /registerCommand\("tasks"/);
   assert.match(taskIndex, /PI_TASKS/);
-  assert.match(taskIndex, /TASKS\.md/);
+  assert.match(taskIndex, /TASKS\.yaml/);
   assert.match(taskIndex, /specDir/);
   assert.match(taskIndex, /subagents:rpc:spawn/);
   assert.match(taskIndex, /SYSTEM_REMINDER/);
@@ -59,8 +62,8 @@ test("built-in task manager source covers documented tools and storage behavior"
 
   const store = await readText("src/tasks/task-store.ts");
   assert.match(store, /acquireLock/);
-  assert.match(store, /renderMarkdownTaskFile/);
-  assert.match(store, /parseMarkdownTaskFile/);
+  assert.match(store, /renderYamlTaskFile/);
+  assert.match(store, /parseYamlTaskFile/);
   assert.match(store, /clearCompleted/);
   assert.match(store, /addBlockedBy/);
 });
@@ -72,11 +75,11 @@ test("README documents commands, task tools, validation, and attribution", async
     "/tasks",
     "TaskCreate",
     "TaskExecute",
-    "TASKS.md",
+    "TASKS.yaml",
     "specDir",
     "AGENTS.md",
     "YYYY-MM-DD-kebab-feature",
-    "pure Markdown",
+    "YAML",
     "npm run tasks:check",
     "npm test",
     "THIRD_PARTY_NOTICES.md",
@@ -89,18 +92,19 @@ test("README documents commands, task tools, validation, and attribution", async
 test("builtin task workflow specs are checked in and behavior-focused", async () => {
   const product = await readText("specs/2026-05-01-builtin-task-workflow/PRODUCT.md");
   const tech = await readText("specs/2026-05-01-builtin-task-workflow/TECH.md");
-  const tasks = await readText("specs/2026-05-01-builtin-task-workflow/TASKS.md");
+  const tasks = await readText("specs/2026-05-01-builtin-task-workflow/TASKS.yaml");
 
   assert.match(product, /## Behavior/);
   assert.match(product, /built-in task manager/i);
   assert.match(product, /TaskCreate/);
-  assert.match(product, /TASKS\.md/);
+  assert.match(product, /TASKS\.yaml/);
   assert.match(product, /1:1 task database/i);
   assert.match(product, /without installing a separate task package/i);
   assert.match(product, /steers the work mid-stream/i);
   assert.match(tech, /src\/tasks/);
   assert.match(tech, /Testing and validation/);
-  assert.match(tasks, /- \[x\] #1 \[completed\]/);
+  assert.match(tasks, /version: 1/);
+  assert.match(tasks, /status: "completed"/);
   assert.doesNotMatch(tasks, /pi-spec-tasks-db/);
 });
 
@@ -108,11 +112,17 @@ test("AGENTS and skills document convention discovery and steering alignment", a
   const agents = await readText("AGENTS.md");
   assert.match(agents, /Spec directories live under `specs`/);
   assert.match(agents, /YYYY-MM-DD-kebab-feature/);
-  assert.match(agents, /PRODUCT\.md.*TECH\.md.*TASKS\.md/);
+  assert.match(agents, /PRODUCT\.md.*TECH\.md.*TASKS\.yaml/);
   assert.match(agents, /Before every commit, bump the package patch version by exactly one/);
 
   for (const skill of ["spec-driven-dev", "spec-product", "spec-tech", "spec-implement", "spec-audit"]) {
     const text = await readText(`skills/${skill}/SKILL.md`);
-    assert.match(text, /AGENTS\.md|TASKS\.md|PRODUCT\.md/s);
+    assert.match(text, /AGENTS\.md|TASKS\.yaml|PRODUCT\.md/s);
+  }
+  for (const skill of ["spec-implement", "spec-audit"]) {
+    const text = await readText(`skills/${skill}/SKILL.md`);
+    assert.match(text, /without arguments/);
+    assert.match(text, /SPECS\.yaml/);
+    assert.match(text, /focused spec/);
   }
 });

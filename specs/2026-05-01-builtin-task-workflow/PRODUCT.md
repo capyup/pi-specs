@@ -15,18 +15,18 @@ Issue: user request to integrate the capabilities of `https://github.com/tintinw
 5. When the workflow creates or infers a missing default spec convention, it records the convention in `AGENTS.md` in short sentences so future agents reuse the same root and naming format.
 6. Before finalizing newly inferred or changed spec conventions, the agent presents the intended convention to the user and asks whether to proceed or adjust it.
 7. Default spec directory names use `YYYY-MM-DD-kebab-feature`, for example `2026-05-01-builtin-task-workflow`; `spec_scaffold` prefixes the current date when the caller provides only a short feature id.
-8. Every spec directory contains a 1:1 task database file next to the specs: `PRODUCT.md`, `TECH.md`, and `TASKS.md`.
-9. `TASKS.md` is a pure Markdown todo file, not Markdown with embedded JSON. The Markdown todo lines are the task database and the source of truth used by task tools.
+8. Every spec directory contains a 1:1 task database file next to the specs: `PRODUCT.md`, `TECH.md`, and `TASKS.yaml`.
+9. `TASKS.yaml` is a readable YAML file. The YAML entries are the task database and the source of truth used by task tools.
 10. Task entries stay compact because detailed behavior and technical rationale belong in `PRODUCT.md` and `TECH.md`.
-11. Tasks have stable IDs, subject, description derived from the compact task text when read from Markdown, status, optional active spinner text, optional owner, metadata, creation/update timestamps, and dependency edges.
+11. Tasks have stable IDs, subject, description, status, optional active spinner text, optional owner, metadata, creation/update timestamps, and dependency edges.
 12. Task status progresses through `pending`, `in_progress`, and `completed`; setting status to `deleted` removes the task and cleans related dependency edges.
 13. Task dependencies are bidirectional: adding `blocks` or `blockedBy` updates both sides, and warnings are returned for self-dependencies, dangling references, or obvious cycles.
-14. The task sync layer can check and repair `TASKS.md` files by normalizing Markdown task lines, repairing dependency edges, removing invalid references, and preserving a pure Markdown representation.
-15. The agentic workflow also repairs drift: when task files look stale, malformed, or inconsistent with PRODUCT/TECH, the agent should repair `TASKS.md` or explain the remaining ambiguity before continuing.
-16. When the user steers the work mid-stream, the workflow evaluates whether observable behavior changed; if yes, it updates `PRODUCT.md` first, then `TECH.md`, then `TASKS.md`, then implementation/tests as needed.
+14. The task sync layer can check and repair `TASKS.yaml` files by normalizing YAML task entries, repairing dependency edges, removing invalid references, and preserving a readable YAML representation.
+15. The agentic workflow also repairs drift: when task files look stale, malformed, or inconsistent with PRODUCT/TECH, the agent should repair `TASKS.yaml` or explain the remaining ambiguity before continuing.
+16. When the user steers the work mid-stream, the workflow evaluates whether observable behavior changed; if yes, it updates `PRODUCT.md` first, then `TECH.md`, then `TASKS.yaml`, then implementation/tests as needed.
 17. A live widget appears above the editor while tasks exist, showing task count, status breakdown, visible task rows, blocked-by hints, active spinner text, elapsed time, and token counters when available.
 18. Users can manage tasks interactively through `/tasks`: view all tasks, create a task, inspect task details, mark pending tasks as in progress, complete in-progress tasks, delete tasks, clear completed tasks, clear all tasks, and edit settings.
-19. Task tools accept a `specDir` when the active spec directory is ambiguous; otherwise the extension can infer a spec directory from the current working directory, configured active spec, or a single existing `TASKS.md` under the spec root.
+19. Task tools accept a `specDir` when the active spec directory is ambiguous; otherwise the extension can infer a spec directory from the current working directory, configured active spec, or a single existing `TASKS.yaml` under the spec root.
 20. Task storage still supports memory-only, per-session, and project-shared modes for non-spec workflows or explicit user preference.
 21. Environment variable overrides are honored: `PI_TASKS=off` disables file persistence, named values use shared lists, absolute paths use that file, and relative paths resolve from the current working directory.
 22. Multiple sessions can share a file-backed task list safely via file locking and stale lock recovery.
@@ -42,9 +42,9 @@ Issue: user request to integrate the capabilities of `https://github.com/tintinw
 - Goal: absorb the practical task-management capabilities of `pi-tasks` into this package as local source code, with attribution where appropriate.
 - Goal: make task tracking part of the spec-driven workflow rather than an optional external dependency.
 - Goal: keep command/tool names familiar (`TaskCreate`, `TaskList`, `TaskGet`, `TaskUpdate`, `TaskOutput`, `TaskStop`, `TaskExecute`, `/tasks`) so existing agent habits transfer.
-- Goal: keep task storage reviewable as pure Markdown inside the relevant spec directory.
+- Goal: keep task storage reviewable as YAML inside the relevant spec directory.
 - Non-goal: require users to install `@tintinweb/pi-tasks` or any separate pi task package.
-- Non-goal: hide a JSON database inside Markdown.
+- Non-goal: hide a JSON database inside Markdown or YAML.
 - Non-goal: implement a new subagent system; this package only talks to a compatible subagent extension if one is already loaded.
 - Non-goal: make task tracking mandatory for tiny fixes, simple Q&A, or obvious one-file edits.
 

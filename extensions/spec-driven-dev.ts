@@ -39,10 +39,17 @@ const COMMANDS = [
 
 function buildSkillPrompt(skill: string, args: string, usage: string): string {
 	const trimmed = args.trim();
+	const noArgsInstruction = [
+		`No arguments were provided for ${usage}.`,
+		"Do not ask immediately.",
+		"First read AGENTS.md and specs/SPECS.yaml if they exist.",
+		"If SPECS.yaml has exactly one focused spec entry, use that focused spec as the target.",
+		"Ask the user only if no focused spec can be found or the target remains ambiguous after reading the registry.",
+	].join(" ");
 	return [
 		`Use the ${skill} skill for this task.`,
 		"Read that skill's SKILL.md before taking action if it is available.",
-		trimmed ? `User request: ${trimmed}` : `No arguments were provided. Ask for the missing details needed for ${usage}.`,
+		trimmed ? `User request: ${trimmed}` : noArgsInstruction,
 	].join("\n\n");
 }
 
@@ -222,13 +229,9 @@ Map important PRODUCT.md Behavior items to concrete verification:
 }
 
 function tasksTemplate(): string {
-	return `# TASKS
-
-Pure Markdown task database for the sibling \`PRODUCT.md\` / \`TECH.md\` spec. Keep task text compact; details belong in the specs.
-
-Legend: \`[ ]\` pending, \`[ ] [in_progress]\` in progress, \`[x]\` completed.
-
-No tasks yet.
+	return `version: 1
+next_id: 1
+tasks: []
 `;
 }
 
@@ -258,11 +261,11 @@ export default function specDrivenDevExtension(pi: ExtensionAPI) {
 	pi.registerTool({
 		name: "spec_scaffold",
 		label: "Spec Scaffold",
-		description: "Create a specs/<id>/PRODUCT.md, TASKS.md, and optional TECH.md scaffold in the current project without overwriting existing files.",
+		description: "Create a specs/<id>/PRODUCT.md, TASKS.yaml, and optional TECH.md scaffold in the current project without overwriting existing files.",
 		promptSnippet: "Create spec directory scaffolds for spec-driven development.",
 		promptGuidelines: [
 			"Use spec_scaffold when starting a new spec-driven feature and the user has provided a ticket id or short feature id.",
-			"Do not use spec_scaffold to overwrite existing PRODUCT.md, TECH.md, or TASKS.md; read existing specs first when they already exist.",
+			"Do not use spec_scaffold to overwrite existing PRODUCT.md, TECH.md, or TASKS.yaml; read existing specs first when they already exist.",
 		],
 		parameters: Type.Object({
 			id: Type.String({ description: "Ticket id or short feature id, e.g. APP-1234 or markdown-tables" }),
@@ -307,7 +310,7 @@ export default function specDrivenDevExtension(pi: ExtensionAPI) {
 			if (params.includeTech ?? true) {
 				await createOnce("TECH.md", techTemplate(specId, title, `${relativeSpecDir}/PRODUCT.md`));
 			}
-			await createOnce("TASKS.md", tasksTemplate());
+			await createOnce("TASKS.yaml", tasksTemplate());
 
 			return {
 				content: [
@@ -324,8 +327,8 @@ export default function specDrivenDevExtension(pi: ExtensionAPI) {
 	pi.registerTool({
 		name: "spec_list",
 		label: "Spec List",
-		description: "List spec directories under the AGENTS.md-documented spec root and report which contain PRODUCT.md, TECH.md, and TASKS.md.",
-		promptSnippet: "List existing spec directories and whether PRODUCT.md / TECH.md / TASKS.md exists.",
+		description: "List spec directories under the AGENTS.md-documented spec root and report which contain PRODUCT.md, TECH.md, and TASKS.yaml.",
+		promptSnippet: "List existing spec directories and whether PRODUCT.md / TECH.md / TASKS.yaml exists.",
 		parameters: Type.Object({}),
 		async execute(_toolCallId, _params, _signal, _onUpdate, ctx) {
 			const resolved = await resolveSpecRoot(ctx.cwd);
@@ -351,7 +354,7 @@ export default function specDrivenDevExtension(pi: ExtensionAPI) {
 				}
 				const product = children.includes("PRODUCT.md") || children.includes("product.md");
 				const tech = children.includes("TECH.md") || children.includes("tech.md");
-				const tasks = children.includes("TASKS.md") || children.includes("tasks.md");
+				const tasks = children.includes("TASKS.yaml") || children.includes("TASKS.yml") || children.includes("tasks.yaml") || children.includes("tasks.yml");
 				rows.push({ id: entry, product, tech, tasks });
 			}
 

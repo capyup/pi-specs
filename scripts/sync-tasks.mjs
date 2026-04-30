@@ -13,7 +13,7 @@ function walk(dir, results) {
   for (const entry of readdirSync(dir, { withFileTypes: true })) {
     const path = join(dir, entry.name);
     if (entry.isDirectory()) walk(path, results);
-    else if (entry.isFile() && entry.name === "TASKS.md") results.push(path);
+    else if (entry.isFile() && (entry.name === "TASKS.yaml" || entry.name === "TASKS.yml")) results.push(path);
   }
 }
 
@@ -27,7 +27,7 @@ function discoverTaskFiles() {
 
 const files = discoverTaskFiles();
 if (files.length === 0) {
-  console.log("No TASKS.md files found.");
+  console.log("No TASKS.yaml files found.");
   process.exit(0);
 }
 
@@ -41,6 +41,6 @@ for (const file of files) {
 }
 
 if (check && hasChanges) {
-  console.error("TASKS.md files are not normalized. Run `npm run tasks:repair`.");
+  console.error("TASKS.yaml files are not normalized. Run `npm run tasks:repair`.");
   process.exit(1);
 }

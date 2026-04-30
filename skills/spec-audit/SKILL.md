@@ -7,6 +7,10 @@ description: Audit a repository's spec-driven development process or compare spe
 
 Use this skill to understand or review a project's spec-driven development workflow.
 
+## Target resolution
+
+When `/spec-audit` is invoked without arguments, do not ask immediately. First read `AGENTS.md` and `specs/SPECS.yaml`. If `SPECS.yaml` has exactly one focused spec entry, audit that focused spec. Ask the user only when no focused spec can be found or the focused state is ambiguous.
+
 ## Audit modes
 
 Choose the mode that matches the request:
@@ -24,7 +28,7 @@ Start broad, then narrow:
 - `.agents/skills/`, `.pi/skills/`, `.pi/prompts/`, package resources
 - `specs/`, `docs/specs/`, `rfcs/`, `docs/adr/`, or equivalent
 - PR templates and CI/test docs
-- built-in task-manager state in pure Markdown `specs/<id>/TASKS.md` or legacy task files under `.pi/tasks/`
+- built-in task-manager state in YAML `specs/<id>/TASKS.yaml` or legacy task files under `.pi/tasks/`
 - representative code and tests for 2-3 specs
 
 If the extension tool is available, use `spec_list` to get a quick inventory, then inspect representative specs directly.
@@ -94,7 +98,7 @@ For a target spec directory:
 
 1. Read `PRODUCT.md` and list core behavior invariants.
 2. Read `TECH.md` and list expected code paths and validation.
-3. Inspect built-in task-manager state if present and note stale, malformed, blocked, or completed tasks that disagree with the specs. Recommend `npm run tasks:repair` when Markdown task files are not normalized.
+3. Inspect built-in task-manager state if present and note stale, malformed, blocked, or completed tasks that disagree with the specs. Recommend `npm run tasks:repair` when YAML task files are not normalized.
 4. Inspect current code and tests.
 5. Mark each invariant as:
    - `implemented and tested`

@@ -43,25 +43,27 @@ export function registerTasks(pi: ExtensionAPI): void {
   const taskScope = cfg.taskScope ?? "spec";
 
   function resolveSpecTasksPath(cwd: string, specDir?: string): string | undefined {
+    const taskFileName = "TASKS.yaml";
+    const isTaskFile = (path: string) => path.endsWith("TASKS.yaml") || path.endsWith("TASKS.yml") || path.endsWith("TASKS.md");
     if (specDir) {
       const resolved = resolve(cwd, specDir);
-      return resolved.endsWith("TASKS.md") ? resolved : join(resolved, "TASKS.md");
+      return isTaskFile(resolved) ? resolved : join(resolved, taskFileName);
     }
 
     const cwdParts = resolve(cwd).split("/");
     const specsIndex = cwdParts.lastIndexOf("specs");
     if (specsIndex >= 0 && cwdParts.length > specsIndex + 1) {
-      return join(cwdParts.slice(0, specsIndex + 2).join("/"), "TASKS.md");
+      return join(cwdParts.slice(0, specsIndex + 2).join("/"), taskFileName);
     }
 
-    if (cfg.activeSpecDir) return join(resolve(cwd, cfg.activeSpecDir), "TASKS.md");
+    if (cfg.activeSpecDir) return join(resolve(cwd, cfg.activeSpecDir), taskFileName);
 
     const specsDir = join(cwd, "specs");
     if (!existsSync(specsDir)) return undefined;
     const candidates = readdirSync(specsDir)
       .map((entry) => join(specsDir, entry))
-      .filter((entry) => statSync(entry).isDirectory() && existsSync(join(entry, "TASKS.md")));
-    return candidates.length === 1 ? join(candidates[0], "TASKS.md") : undefined;
+      .filter((entry) => statSync(entry).isDirectory() && (existsSync(join(entry, "TASKS.yaml")) || existsSync(join(entry, "TASKS.yml"))));
+    return candidates.length === 1 ? join(candidates[0], taskFileName) : undefined;
   }
 
   function resolveStorePath(sessionId?: string, cwd = process.cwd(), specDir?: string): string | undefined {
@@ -336,7 +338,7 @@ Tasks start as pending. Use TaskUpdate to mark tasks in_progress before starting
       activeForm: Type.Optional(Type.String({ description: "Present continuous text shown while active, e.g. 'Running tests'" })),
       agentType: Type.Optional(Type.String({ description: "Subagent type for TaskExecute, if a compatible subagent extension is loaded" })),
       metadata: Type.Optional(Type.Record(Type.String(), Type.Any(), { description: "Arbitrary task metadata" })),
-      specDir: Type.Optional(Type.String({ description: "Spec directory whose TASKS.md should back this task list, e.g. specs/builtin-task-workflow" })),
+      specDir: Type.Optional(Type.String({ description: "Spec directory whose TASKS.yaml should back this task list, e.g. specs/builtin-task-workflow" })),
     }),
     execute(_toolCallId, params, _signal, _onUpdate, ctx) {
       useStoreForContext(ctx, params.specDir);
@@ -354,7 +356,7 @@ Tasks start as pending. Use TaskUpdate to mark tasks in_progress before starting
     label: "TaskList",
     description: "List all tasks with status, owner, and open blockers. Use after completing work to find the next available task.",
     parameters: Type.Object({
-      specDir: Type.Optional(Type.String({ description: "Spec directory whose TASKS.md should be listed" })),
+      specDir: Type.Optional(Type.String({ description: "Spec directory whose TASKS.yaml should be listed" })),
     }),
     execute(_toolCallId, params, _signal, _onUpdate, ctx) {
       useStoreForContext(ctx, params.specDir);
@@ -383,7 +385,7 @@ Tasks start as pending. Use TaskUpdate to mark tasks in_progress before starting
     description: "Get full details for a specific task, including description, owner, dependencies, and metadata.",
     parameters: Type.Object({
       taskId: Type.String({ description: "Task ID to retrieve" }),
-      specDir: Type.Optional(Type.String({ description: "Spec directory whose TASKS.md should be read" })),
+      specDir: Type.Optional(Type.String({ description: "Spec directory whose TASKS.yaml should be read" })),
     }),
     execute(_toolCallId, params, _signal, _onUpdate, ctx) {
       useStoreForContext(ctx, params.specDir);
@@ -419,7 +421,7 @@ Status workflow: pending -> in_progress -> completed. Use deleted to permanently
       metadata: Type.Optional(Type.Record(Type.String(), Type.Any(), { description: "Metadata merge; null deletes a key" })),
       addBlocks: Type.Optional(Type.Array(Type.String(), { description: "Task IDs this task blocks" })),
       addBlockedBy: Type.Optional(Type.Array(Type.String(), { description: "Task IDs blocking this task" })),
-      specDir: Type.Optional(Type.String({ description: "Spec directory whose TASKS.md should be updated" })),
+      specDir: Type.Optional(Type.String({ description: "Spec directory whose TASKS.yaml should be updated" })),
     }),
     execute(_toolCallId, params, _signal, _onUpdate, ctx) {
       useStoreForContext(ctx, params.specDir);
@@ -452,7 +454,7 @@ Status workflow: pending -> in_progress -> completed. Use deleted to permanently
       task_id: Type.String({ description: "Task ID or agent ID" }),
       block: Type.Boolean({ description: "Whether to wait for completion", default: true }),
       timeout: Type.Number({ description: "Max wait time in ms", default: 30000, minimum: 0, maximum: 600000 }),
-      specDir: Type.Optional(Type.String({ description: "Spec directory whose TASKS.md should be read" })),
+      specDir: Type.Optional(Type.String({ description: "Spec directory whose TASKS.yaml should be read" })),
     }),
     async execute(_toolCallId, params, signal, _onUpdate, ctx) {
       useStoreForContext(ctx, params.specDir);
@@ -508,7 +510,7 @@ Status workflow: pending -> in_progress -> completed. Use deleted to permanently
     parameters: Type.Object({
       task_id: Type.Optional(Type.String({ description: "Task ID or agent ID" })),
       shell_id: Type.Optional(Type.String({ description: "Deprecated alias for task_id" })),
-      specDir: Type.Optional(Type.String({ description: "Spec directory whose TASKS.md should be updated" })),
+      specDir: Type.Optional(Type.String({ description: "Spec directory whose TASKS.yaml should be updated" })),
     }),
     async execute(_toolCallId, params, _signal, _onUpdate, ctx) {
       useStoreForContext(ctx, params.specDir);
@@ -556,7 +558,7 @@ Status workflow: pending -> in_progress -> completed. Use deleted to permanently
       additional_context: Type.Optional(Type.String({ description: "Extra context appended to each task prompt" })),
       model: Type.Optional(Type.String({ description: "Model override for subagents" })),
       max_turns: Type.Optional(Type.Number({ description: "Maximum turns per agent", minimum: 1 })),
-      specDir: Type.Optional(Type.String({ description: "Spec directory whose TASKS.md should be updated" })),
+      specDir: Type.Optional(Type.String({ description: "Spec directory whose TASKS.yaml should be updated" })),
     }),
     async execute(_toolCallId, params, _signal, _onUpdate, ctx) {
       useStoreForContext(ctx, params.specDir);

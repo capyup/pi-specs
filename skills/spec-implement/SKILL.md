@@ -7,6 +7,10 @@ description: Implement approved PRODUCT.md and TECH.md specs while keeping specs
 
 Build the feature described by checked-in specs and keep those specs accurate as implementation evolves.
 
+## Target resolution
+
+When `/spec-implement` is invoked without arguments, do not ask immediately. First read `AGENTS.md` and `specs/SPECS.yaml`. If `SPECS.yaml` has exactly one focused spec entry, use that spec directory as the implementation target. Ask the user only when no focused spec can be found or the focused state is ambiguous.
+
 ## Prerequisites
 
 Before coding, confirm:
@@ -38,7 +42,7 @@ Before editing, read the relevant files named in `TECH.md` and nearby tests. Ver
 
 ## Plan implementation steps
 
-Use the built-in task manager for non-trivial spec implementation when available. Create or update compact pure-Markdown tasks in the spec directory's `TASKS.md`; pass `specDir` when the active spec is ambiguous. Tasks should correspond to the approved spec phases, dependencies, code changes, tests, and follow-ups. Good steps are concrete:
+Use the built-in task manager for non-trivial spec implementation when available. Create or update compact YAML tasks in the spec directory's `TASKS.yaml`; pass `specDir` when the active spec is ambiguous. Tasks should correspond to the approved spec phases, dependencies, code changes, tests, and follow-ups. Good steps are concrete:
 
 - update enum/display/parser in `path`
 - wire action through `path`
@@ -60,7 +64,7 @@ During implementation:
 - update tests as behavior lands
 - update specs immediately when behavior or architecture changes
 
-Do not silently diverge from the product spec. If the user steers mid-workflow or a behavior invariant is impossible or undesirable after inspecting the code, update in order: `PRODUCT.md` for behavior, `TECH.md` for implementation shape, `TASKS.md` for sequencing/status, then code/tests.
+Do not silently diverge from the product spec. If the user steers mid-workflow or a behavior invariant is impossible or undesirable after inspecting the code, update in order: `PRODUCT.md` for behavior, `TECH.md` for implementation shape, `TASKS.yaml` for sequencing/status, then code/tests.
 
 ## Update specs as needed
 

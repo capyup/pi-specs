@@ -1,0 +1,69 @@
+version: 1
+next_id: 12
+tasks:
+  - id: "1"
+    status: "completed"
+    subject: "Write PRODUCT.md and TECH.md"
+    description: "Write PRODUCT.md and TECH.md"
+    blocks: ["2", "6"]
+    blocked_by: []
+  - id: "2"
+    status: "completed"
+    subject: "Vendor built-in task manager"
+    description: "Vendor built-in task manager"
+    blocks: ["3", "4"]
+    blocked_by: ["1"]
+  - id: "3"
+    status: "completed"
+    subject: "Update skills and README"
+    description: "Update skills and README"
+    blocks: ["5"]
+    blocked_by: ["2"]
+  - id: "4"
+    status: "completed"
+    subject: "Add tests for task workflow"
+    description: "Add tests for task workflow"
+    blocks: ["5"]
+    blocked_by: ["2"]
+  - id: "5"
+    status: "completed"
+    subject: "Move task database into spec TASKS.yaml"
+    description: "Move task database into spec TASKS.yaml"
+    blocks: []
+    blocked_by: ["3", "4"]
+  - id: "6"
+    status: "completed"
+    subject: "Switch task database to YAML"
+    description: "Switch task database to YAML"
+    blocks: ["7", "11"]
+    blocked_by: ["1"]
+  - id: "7"
+    status: "completed"
+    subject: "Add AGENTS discovery, date naming, steering alignment, and task repair scripts"
+    description: "Add AGENTS discovery, date naming, steering alignment, and task repair scripts"
+    blocks: []
+    blocked_by: ["6"]
+  - id: "8"
+    status: "completed"
+    subject: "Remove duplicate prompt template commands"
+    description: "Remove duplicate prompt template commands"
+    blocks: ["9"]
+    blocked_by: []
+  - id: "9"
+    status: "completed"
+    subject: "Prevent spec TASKS.yaml auto-clear during startup"
+    description: "Prevent spec TASKS.yaml auto-clear during startup"
+    blocks: []
+    blocked_by: ["8"]
+  - id: "10"
+    status: "completed"
+    subject: "Verify command palette after reload"
+    description: "Verify command palette after reload"
+    blocks: []
+    blocked_by: []
+  - id: "11"
+    status: "completed"
+    subject: "Rename spec task files to TASKS.yaml"
+    description: "Rename spec task files to TASKS.yaml"
+    blocks: []
+    blocked_by: ["6"]

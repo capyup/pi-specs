@@ -2,7 +2,7 @@
  * File-backed task store with CRUD, dependency management, and file locking.
  * Adapted from @tintinweb/pi-tasks (MIT).
  *
- * `TASKS.md` uses pure Markdown todo lines as the source of truth. No hidden JSON block.
+ * `TASKS.yaml` uses readable YAML as the source of truth. Legacy `TASKS.md` files can still be read.
  */
 
 import { existsSync, mkdirSync, readFileSync, renameSync, unlinkSync, writeFileSync } from "node:fs";
@@ -13,6 +13,7 @@ import type { Task, TaskStatus, TaskStoreData } from "./types.js";
 const TASKS_DIR = join(homedir(), ".pi", "tasks");
 const LOCK_RETRY_MS = 50;
 const LOCK_MAX_RETRIES = 100;
+const TASK_STORE_VERSION = 1;
 const LEGACY_MARKDOWN_DB_START = "<!-- pi-spec-tasks-db";
 const LEGACY_MARKDOWN_DB_END = "-->";
 
@@ -60,6 +61,11 @@ function isMarkdownTaskFile(filePath: string): boolean {
   return extname(filePath).toLowerCase() === ".md";
 }
 
+function isYamlTaskFile(filePath: string): boolean {
+  const ext = extname(filePath).toLowerCase();
+  return ext === ".yaml" || ext === ".yml";
+}
+
 function escapeInline(value: string): string {
   return value.replace(/\r?\n/g, " ").replace(/;/g, ",").trim();
 }
@@ -73,6 +79,39 @@ function parseIdList(value: string): string[] {
 
 function formatIdList(ids: string[]): string {
   return ids.map((id) => `#${id}`).join(", ");
+}
+
+function formatYamlScalar(value: unknown): string {
+  if (value === undefined || value === null) return "null";
+  if (Array.isArray(value)) return `[${value.map((item) => formatYamlScalar(item)).join(", ")}]`;
+  return JSON.stringify(value);
+}
+
+function parseYamlScalar(raw: string): unknown {
+  const value = raw.trim();
+  if (value === "" || value === "null" || value === "~") return undefined;
+  if (value === "true") return true;
+  if (value === "false") return false;
+  if (/^-?\d+(?:\.\d+)?$/.test(value)) return Number(value);
+  if (/^[\[{\"]/.test(value)) {
+    try {
+      return JSON.parse(value);
+    } catch {
+      return value;
+    }
+  }
+  return value;
+}
+
+function assignYamlField(target: Record<string, any>, key: string, value: unknown): void {
+  const mappedKey: Record<string, string> = {
+    next_id: "nextId",
+    blocked_by: "blockedBy",
+    active_form: "activeForm",
+    created_at: "createdAt",
+    updated_at: "updatedAt",
+  };
+  target[mappedKey[key] ?? key] = value;
 }
 
 function coerceTaskArray(value: unknown): Task[] {
@@ -150,12 +189,71 @@ export function normalizeTaskStoreData(input: Partial<TaskStoreData> | undefined
   return { data: { nextId, tasks }, warnings };
 }
 
+export function renderYamlTaskFile(data: TaskStoreData): string {
+  const normalized = normalizeTaskStoreData(data).data;
+  const lines = [`version: ${TASK_STORE_VERSION}`, `next_id: ${normalized.nextId}`];
+
+  if (normalized.tasks.length === 0) {
+    lines.push("tasks: []");
+    return `${lines.join("\n")}\n`;
+  }
+
+  lines.push("tasks:");
+  for (const task of normalized.tasks) {
+    lines.push(`  - id: ${formatYamlScalar(task.id)}`);
+    lines.push(`    status: ${formatYamlScalar(task.status)}`);
+    lines.push(`    subject: ${formatYamlScalar(task.subject)}`);
+    lines.push(`    description: ${formatYamlScalar(task.description)}`);
+    if (task.activeForm) lines.push(`    active_form: ${formatYamlScalar(task.activeForm)}`);
+    if (task.owner) lines.push(`    owner: ${formatYamlScalar(task.owner)}`);
+    if (Object.keys(task.metadata).length > 0) lines.push(`    metadata: ${formatYamlScalar(task.metadata)}`);
+    lines.push(`    blocks: ${formatYamlScalar(task.blocks)}`);
+    lines.push(`    blocked_by: ${formatYamlScalar(task.blockedBy)}`);
+  }
+
+  return `${lines.join("\n")}\n`;
+}
+
+export function parseYamlTaskFile(text: string): TaskStoreData | undefined {
+  const root: Record<string, any> = { tasks: [] };
+  let currentTask: Record<string, any> | undefined;
+
+  for (const line of text.split(/\r?\n/)) {
+    if (!line.trim() || line.trimStart().startsWith("#")) continue;
+    const topLevel = line.match(/^([A-Za-z_][A-Za-z0-9_]*):\s*(.*)$/);
+    if (topLevel) {
+      currentTask = undefined;
+      const key = topLevel[1];
+      const rawValue = topLevel[2];
+      if (key === "tasks" && rawValue.trim() === "[]") root.tasks = [];
+      else if (key !== "tasks") assignYamlField(root, key, parseYamlScalar(rawValue));
+      continue;
+    }
+
+    const taskStart = line.match(/^\s{2}-\s*(?:([A-Za-z_][A-Za-z0-9_]*):\s*(.*))?$/);
+    if (taskStart) {
+      currentTask = {};
+      root.tasks.push(currentTask);
+      if (taskStart[1]) assignYamlField(currentTask, taskStart[1], parseYamlScalar(taskStart[2] ?? ""));
+      continue;
+    }
+
+    const taskField = line.match(/^\s{4}([A-Za-z_][A-Za-z0-9_]*):\s*(.*)$/);
+    if (taskField && currentTask) {
+      assignYamlField(currentTask, taskField[1], parseYamlScalar(taskField[2]));
+    }
+  }
+
+  if (!Array.isArray(root.tasks)) return undefined;
+  return { nextId: typeof root.nextId === "number" ? root.nextId : 1, tasks: root.tasks };
+}
+
 export function renderMarkdownTaskFile(data: TaskStoreData): string {
   const normalized = normalizeTaskStoreData(data).data;
   const lines = [
     "# TASKS",
     "",
-    "Pure Markdown task database for the sibling `PRODUCT.md` / `TECH.md` spec. Keep task text compact; details belong in the specs.",
+    "Legacy Markdown task database for the sibling `PRODUCT.md` / `TECH.md` spec. Prefer TASKS.yaml for new specs.",
     "",
     "Legend: `[ ]` pending, `[ ] [in_progress]` in progress, `[x]` completed.",
     "",
@@ -239,15 +337,29 @@ export function parseMarkdownTaskFile(text: string): TaskStoreData | undefined {
 export function readTaskStoreDataFile(filePath: string): TaskStoreData | undefined {
   if (!existsSync(filePath)) return undefined;
   const text = readFileSync(filePath, "utf-8");
-  const data = isMarkdownTaskFile(filePath) ? parseMarkdownTaskFile(text) : JSON.parse(text) as TaskStoreData;
+  const data = isYamlTaskFile(filePath)
+    ? parseYamlTaskFile(text)
+    : isMarkdownTaskFile(filePath)
+      ? parseMarkdownTaskFile(text)
+      : JSON.parse(text) as TaskStoreData;
   return normalizeTaskStoreData(data).data;
 }
 
 export function syncTaskStoreFile(filePath: string, write = false): { changed: boolean; warnings: string[]; content: string } {
   const original = existsSync(filePath) ? readFileSync(filePath, "utf-8") : "";
-  const parsed = original ? (isMarkdownTaskFile(filePath) ? parseMarkdownTaskFile(original) : JSON.parse(original) as TaskStoreData) : { nextId: 1, tasks: [] };
+  const parsed = original
+    ? isYamlTaskFile(filePath)
+      ? parseYamlTaskFile(original)
+      : isMarkdownTaskFile(filePath)
+        ? parseMarkdownTaskFile(original)
+        : JSON.parse(original) as TaskStoreData
+    : { nextId: 1, tasks: [] };
   const { data, warnings } = normalizeTaskStoreData(parsed);
-  const content = isMarkdownTaskFile(filePath) ? renderMarkdownTaskFile(data) : JSON.stringify(data, null, 2);
+  const content = isYamlTaskFile(filePath)
+    ? renderYamlTaskFile(data)
+    : isMarkdownTaskFile(filePath)
+      ? renderMarkdownTaskFile(data)
+      : JSON.stringify(data, null, 2);
   const changed = content !== original;
   if (write && changed) {
     mkdirSync(dirname(filePath), { recursive: true });
@@ -292,7 +404,7 @@ export class TaskStore {
     if (!this.filePath) return;
     const data: TaskStoreData = { nextId: this.nextId, tasks: Array.from(this.tasks.values()) };
     const tmpPath = `${this.filePath}.tmp`;
-    writeFileSync(tmpPath, isMarkdownTaskFile(this.filePath) ? renderMarkdownTaskFile(data) : JSON.stringify(normalizeTaskStoreData(data).data, null, 2));
+    writeFileSync(tmpPath, isYamlTaskFile(this.filePath) ? renderYamlTaskFile(data) : isMarkdownTaskFile(this.filePath) ? renderMarkdownTaskFile(data) : JSON.stringify(normalizeTaskStoreData(data).data, null, 2));
     renameSync(tmpPath, this.filePath);
   }
 

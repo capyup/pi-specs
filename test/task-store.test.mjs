@@ -87,19 +87,21 @@ test("TaskStore persists JSON file-backed task lists", async () => {
   }
 });
 
-test("TaskStore persists TASKS.md as pure Markdown todos", async () => {
-  const dir = await mkdtemp(join(tmpdir(), "pi-spec-tasks-md-"));
-  const file = join(dir, "TASKS.md");
+test("TaskStore persists TASKS.yaml as YAML", async () => {
+  const dir = await mkdtemp(join(tmpdir(), "pi-spec-tasks-yaml-"));
+  const file = join(dir, "TASKS.yaml");
   try {
     const store = new TaskStore(file);
-    const task = store.create("Update README", "Document TASKS.md persistence");
+    const task = store.create("Update README", "Document TASKS.yaml persistence");
     store.update(task.id, { status: "completed" });
 
     const text = await readFile(file, "utf-8");
-    assert.match(text, /# TASKS/);
-    assert.match(text, /- \[x\] #1 \[completed\] Update README/);
+    assert.match(text, /version: 1/);
+    assert.match(text, /next_id: 2/);
+    assert.match(text, /status: "completed"/);
+    assert.match(text, /subject: "Update README"/);
     assert.doesNotMatch(text, /pi-spec-tasks-db/);
-    assert.doesNotMatch(text, /\{\s*"nextId"/);
+    assert.doesNotMatch(text, /- \[x\]/);
 
     const restored = new TaskStore(file);
     assert.equal(restored.get(task.id)?.subject, "Update README");
@@ -109,15 +111,26 @@ test("TaskStore persists TASKS.md as pure Markdown todos", async () => {
   }
 });
 
-test("syncTaskStoreFile repairs malformed Markdown task dependencies", async () => {
+test("syncTaskStoreFile repairs malformed YAML task dependencies", async () => {
   const dir = await mkdtemp(join(tmpdir(), "pi-spec-tasks-repair-"));
-  const file = join(dir, "TASKS.md");
+  const file = join(dir, "TASKS.yaml");
   try {
     await writeFile(file, [
-      "# TASKS",
-      "",
-      "- [ ] #1 [pending] Product spec; blocks #2; blocked by #999",
-      "- [ ] #2 [pending] Tech spec",
+      "version: 1",
+      "next_id: 3",
+      "tasks:",
+      "  - id: \"1\"",
+      "    status: \"pending\"",
+      "    subject: \"Product spec\"",
+      "    description: \"Product spec\"",
+      "    blocks: [\"2\"]",
+      "    blocked_by: [\"999\"]",
+      "  - id: \"2\"",
+      "    status: \"pending\"",
+      "    subject: \"Tech spec\"",
+      "    description: \"Tech spec\"",
+      "    blocks: []",
+      "    blocked_by: []",
       "",
     ].join("\n"));
 
@@ -127,9 +140,9 @@ test("syncTaskStoreFile repairs malformed Markdown task dependencies", async () 
 
     syncTaskStoreFile(file, true);
     const repaired = await readFile(file, "utf-8");
-    assert.match(repaired, /- \[ \] #1 \[pending\] Product spec; blocks #2/);
-    assert.match(repaired, /- \[ \] #2 \[pending\] Tech spec; blocked by #1/);
-    assert.doesNotMatch(repaired, /#999/);
+    assert.match(repaired, /blocks: \["2"\]/);
+    assert.match(repaired, /blocked_by: \["1"\]/);
+    assert.doesNotMatch(repaired, /999/);
   } finally {
     await rm(dir, { recursive: true, force: true });
   }

@@ -31,7 +31,7 @@ The extension registers direct commands so you do not have to remember skill nam
 
 The extension also registers helper tools that the model can call when useful:
 
-- `spec_scaffold` - creates `PRODUCT.md`, optional `TECH.md`, and `TASKS.md` under the documented spec root without overwriting existing files.
+- `spec_scaffold` - creates `PRODUCT.md`, optional `TECH.md`, and `TASKS.yaml` under the documented spec root without overwriting existing files.
 - `spec_list` - lists spec directories under the documented spec root and reports whether each has product, tech, and task files.
 
 ### Built-in Task Manager
@@ -53,7 +53,7 @@ TaskExecute
 
 Use it for non-trivial spec workflows: create tasks for product spec, tech spec, implementation steps, validation, and follow-ups; mark tasks `in_progress` before starting and `completed` only when the work and relevant verification are done. Skip task tracking for tiny one-step fixes.
 
-By default, spec-driven tasks are stored in the active spec directory as `TASKS.md`, next to `PRODUCT.md` and `TECH.md`. That file is the task database and uses pure Markdown todos, not embedded JSON. Task tools accept `specDir` when more than one spec exists, for example `specs/2026-05-01-builtin-task-workflow`.
+By default, spec-driven tasks are stored in the active spec directory as `TASKS.yaml`, next to `PRODUCT.md` and `TECH.md`. That file is the task database and uses readable YAML. Task tools accept `specDir` when more than one spec exists, for example `specs/2026-05-01-builtin-task-workflow`.
 
 Tasks can also be stored in memory, per session, or project-wide under `.pi/tasks/`; settings live in `.pi/tasks-config.json`. `PI_TASKS=off`, named lists, and explicit paths are supported for automation or shared coordination.
 
@@ -125,12 +125,12 @@ Audit an existing project or feature:
 
 1. **Start from an issue or feature idea.** Use `/spec-workflow` when the change is substantial, ambiguous, risky, or likely to involve multiple files.
 2. **Discover conventions first.** Read `AGENTS.md`; if no spec root is documented, prefer existing `specs`, `docs/specs`, `.pi/specs`, then any nested `specs`, then create `./specs` and record the convention in `AGENTS.md`.
-3. **Confirm new conventions.** Before finalizing an inferred convention, tell the user the planned spec root, date-prefixed directory name, and pure Markdown `TASKS.md` format, then ask whether to proceed or adjust.
+3. **Confirm new conventions.** Before finalizing an inferred convention, tell the user the planned spec root, date-prefixed directory name, and YAML `TASKS.yaml` format, then ask whether to proceed or adjust.
 4. **Create live tasks for non-trivial work.** Use `TaskCreate` / `TaskUpdate` to track product spec, tech spec, implementation, validation, and follow-ups when the workflow has multiple meaningful steps.
 5. **Write `PRODUCT.md` first.** Capture observable behavior as numbered, testable invariants. Keep implementation details out.
 6. **Write `TECH.md` when warranted.** Read the product spec and current source code. Ground the plan in real files, types, state, data flow, risks, and validation.
 7. **Implement from approved specs.** Treat `PRODUCT.md` as behavior source of truth and `TECH.md` as the implementation plan.
-8. **Handle steering top-down.** If the user steers mid-workflow and behavior changes, update `PRODUCT.md`, then `TECH.md`, then `TASKS.md`, then implementation/tests as needed.
+8. **Handle steering top-down.** If the user steers mid-workflow and behavior changes, update `PRODUCT.md`, then `TECH.md`, then `TASKS.yaml`, then implementation/tests as needed.
 9. **Keep specs and tasks current.** If implementation changes behavior, architecture, or sequencing, update the relevant spec and task state in the same PR.
 10. **Verify against behavior.** Tests and manual checks should map back to the behavior invariants in the product spec.
 11. **Audit before finishing.** Use `/spec-audit` when you want a final check for spec/code/test/task drift.
@@ -142,7 +142,7 @@ When a repository does not already have a convention, this package uses:
 ```text
 specs/YYYY-MM-DD-kebab-feature/PRODUCT.md
 specs/YYYY-MM-DD-kebab-feature/TECH.md
-specs/YYYY-MM-DD-kebab-feature/TASKS.md
+specs/YYYY-MM-DD-kebab-feature/TASKS.yaml
 ```
 
 Examples:
@@ -150,7 +150,7 @@ Examples:
 ```text
 specs/2026-05-01-builtin-task-workflow/PRODUCT.md
 specs/2026-05-01-builtin-task-workflow/TECH.md
-specs/2026-05-01-builtin-task-workflow/TASKS.md
+specs/2026-05-01-builtin-task-workflow/TASKS.yaml
 specs/2026-05-01-mermaid-markdown-in-plans/PRODUCT.md
 ```
 
@@ -252,7 +252,7 @@ The tests use Node's built-in test runner with TypeScript type stripping, so no 
 - skill frontmatter consistency
 - duplicate command/prompt prevention
 - built-in task-manager source registration
-- task-store CRUD, metadata, dependency warnings, deletion cleanup, JSON compatibility, pure Markdown TASKS.md persistence, and auto-clear behavior
+- task-store CRUD, metadata, dependency warnings, deletion cleanup, JSON compatibility, YAML `TASKS.yaml` persistence, and auto-clear behavior
 - README/spec/prompt coverage for AGENTS discovery, steering alignment, and the built-in task workflow
 
 Check and repair spec task files:
@@ -262,7 +262,7 @@ npm run tasks:check
 npm run tasks:repair
 ```
 
-`tasks:check` verifies discovered `TASKS.md` files under `specs`, `docs/specs`, and `.pi/specs` are canonical pure Markdown todos. `tasks:repair` rewrites them into the normalized Markdown form when safe.
+`tasks:check` verifies discovered `TASKS.yaml` files under `specs`, `docs/specs`, and `.pi/specs` are canonical YAML task databases. `tasks:repair` rewrites them into the normalized YAML form when safe.
 
 Smoke-test local pi loading:
 

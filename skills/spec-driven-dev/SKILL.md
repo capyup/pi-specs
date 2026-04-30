@@ -49,7 +49,7 @@ Before creating files, inspect the project for existing conventions:
 - then inspect `CONTRIBUTING.md`, `README.md`, `WARP.md`, `CLAUDE.md`, or equivalent agent docs
 - then check existing roots in this order: `specs`, `docs/specs`, `.pi/specs`
 - then search for another `specs` directory if the preferred roots do not exist
-- inspect examples of `PRODUCT.md`, `TECH.md`, `TASKS.md`, PRDs, design docs, or RFCs
+- inspect examples of `PRODUCT.md`, `TECH.md`, `TASKS.yaml`, PRDs, design docs, or RFCs
 - inspect test and validation conventions
 
 Default convention when none exists:
@@ -57,12 +57,12 @@ Default convention when none exists:
 ```text
 specs/YYYY-MM-DD-kebab-feature/PRODUCT.md
 specs/YYYY-MM-DD-kebab-feature/TECH.md
-specs/YYYY-MM-DD-kebab-feature/TASKS.md
+specs/YYYY-MM-DD-kebab-feature/TASKS.yaml
 ```
 
-`TASKS.md` is the spec-scoped task database. Keep it as pure Markdown todos in the same directory as the specs so product intent, technical plan, and live progress stay together.
+`TASKS.yaml` is the spec-scoped task database. Keep it as readable YAML in the same directory as the specs so product intent, technical plan, and live progress stay together.
 
-When no convention exists, propose the convention to the user before finalizing it: spec root, date-prefixed directory name, and `TASKS.md` format. If the user agrees or says to proceed, create/update `AGENTS.md` with one sentence for the spec root and one sentence for the `YYYY-MM-DD-kebab-feature` naming format.
+When no convention exists, propose the convention to the user before finalizing it: spec root, date-prefixed directory name, and `TASKS.yaml` format. If the user agrees or says to proceed, create/update `AGENTS.md` with one sentence for the spec root and one sentence for the `YYYY-MM-DD-kebab-feature` naming format.
 
 Use a ticket id when available (`APP-1234`, `GH408`, `JIRA-123`) only if the project already prefers ticket ids. Otherwise default to `YYYY-MM-DD-kebab-feature`. If the package extension is installed, you can call `spec_scaffold` to create the directory and starter files.
 
@@ -83,7 +83,7 @@ If the user already gave enough context, proceed instead of over-interviewing.
 
 For non-trivial workflows, use the built-in task manager when available:
 
-- create compact Markdown todo tasks in the spec directory's `TASKS.md` for product spec, tech spec, implementation, validation, and follow-ups when there are three or more meaningful steps
+- create compact YAML tasks in the spec directory's `TASKS.yaml` for product spec, tech spec, implementation, validation, and follow-ups when there are three or more meaningful steps
 - pass `specDir` to task tools when more than one spec exists or the active spec is ambiguous
 - keep task entries compact; detailed rationale belongs in `PRODUCT.md` and `TECH.md`
 - mark a task `in_progress` before starting that phase and `completed` only when it is actually done
@@ -152,12 +152,12 @@ If the extension from this package is installed, the user can invoke:
 
 The extension also exposes tools:
 
-- `spec_scaffold` - create `PRODUCT.md`, optional `TECH.md`, and `TASKS.md` under the documented spec root without overwriting files
+- `spec_scaffold` - create `PRODUCT.md`, optional `TECH.md`, and `TASKS.yaml` under the documented spec root without overwriting files
 - `spec_list` - list current spec directories and whether each has product/tech/tasks files
 
 ## Keep specs current
 
-When the user steers the work mid-conversation, do not patch only the current file. First decide whether the steering changes observable behavior. If yes, update `PRODUCT.md` first, then update `TECH.md`, then update `TASKS.md`, then adjust implementation and tests as needed. If behavior does not change, update the lowest affected layer and explain why higher layers stay unchanged.
+When the user steers the work mid-conversation, do not patch only the current file. First decide whether the steering changes observable behavior. If yes, update `PRODUCT.md` first, then update `TECH.md`, then update `TASKS.yaml`, then adjust implementation and tests as needed. If behavior does not change, update the lowest affected layer and explain why higher layers stay unchanged.
 
 Update `PRODUCT.md` when:
 
@@ -171,7 +171,7 @@ Update `TECH.md` when:
 - risks, dependencies, rollout, or migration assumptions change
 - the testing or validation plan changes
 
-Update `TASKS.md` when:
+Update `TASKS.yaml` when:
 
 - phase status changes
 - task dependencies change
