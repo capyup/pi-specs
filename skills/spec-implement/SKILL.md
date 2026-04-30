@@ -38,7 +38,7 @@ Before editing, read the relevant files named in `TECH.md` and nearby tests. Ver
 
 ## Plan implementation steps
 
-Use a lightweight todo list for multi-step work. Good steps are concrete:
+Use the built-in task manager for non-trivial spec implementation when available. Create or update compact pure-Markdown tasks in the spec directory's `TASKS.md`; pass `specDir` when the active spec is ambiguous. Tasks should correspond to the approved spec phases, dependencies, code changes, tests, and follow-ups. Good steps are concrete:
 
 - update enum/display/parser in `path`
 - wire action through `path`
@@ -46,6 +46,8 @@ Use a lightweight todo list for multi-step work. Good steps are concrete:
 - run targeted command
 
 Avoid vague steps like "implement feature" or "add validation".
+
+Mark the current task `in_progress` before editing, and mark it `completed` only after the corresponding code/spec/test work is finished or the residual risk is explicitly recorded.
 
 ## Implement against the specs
 
@@ -58,7 +60,7 @@ During implementation:
 - update tests as behavior lands
 - update specs immediately when behavior or architecture changes
 
-Do not silently diverge from the product spec. If a behavior invariant is impossible or undesirable after inspecting the code, call it out and revise `PRODUCT.md` with the new decision.
+Do not silently diverge from the product spec. If the user steers mid-workflow or a behavior invariant is impossible or undesirable after inspecting the code, update in order: `PRODUCT.md` for behavior, `TECH.md` for implementation shape, `TASKS.md` for sequencing/status, then code/tests.
 
 ## Update specs as needed
 

@@ -6,4 +6,4 @@ Use the `spec-audit` skill. Audit this repository's spec-driven workflow or spec
 
 $ARGUMENTS
 
-Inspect docs, skills, specs, code, and tests as needed. Summarize evidence, workflow, gaps, and concrete recommendations.
+Inspect AGENTS.md, docs, skills, specs, TASKS.md, code, and tests as needed. Summarize evidence, workflow, gaps, task/spec/code drift, and concrete recommendations. Flag cases where mid-workflow steering updated code or tasks without corresponding PRODUCT.md / TECH.md updates.

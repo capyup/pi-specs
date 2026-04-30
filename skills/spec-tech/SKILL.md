@@ -9,7 +9,7 @@ Translate product intent into an implementation plan that fits the existing code
 
 ## Preconditions
 
-Prefer to have a sibling `PRODUCT.md` first. If none exists, either:
+Prefer to have a sibling `PRODUCT.md` first. For existing work, also look for sibling `TASKS.md` so implementation planning can preserve current progress. If no product spec exists, either:
 
 - ask whether to draft a product spec first, or
 - proceed only when the task is purely technical and behavior is already settled.
@@ -51,7 +51,7 @@ Make the implementation plan traceable rather than exhaustive. Include:
 Match the product spec directory. Default:
 
 ```text
-specs/<ticket-or-feature-id>/TECH.md
+specs/YYYY-MM-DD-kebab-feature/TECH.md
 ```
 
 If the feature is large, additional focused tech docs can live alongside it, for example `TECH-protocol.md`, `TECH-client-wiring.md`, or checklists. Keep the top-level `TECH.md` as the map.
@@ -110,6 +110,8 @@ Be concrete about:
 
 Prefer repo-native patterns over generic architecture advice.
 
+For work that will be implemented by an agent or split across phases, include a compact task breakdown that can be translated directly into sibling `TASKS.md` Markdown todos. Name dependencies explicitly, for example `implementation depends on approved TECH.md` or `validation depends on code changes`.
+
 ## Testing and validation section
 
 Map important product behavior to verification:
@@ -132,7 +134,7 @@ If a behavior cannot be automated, say why and list the manual artifact expected
 
 ## Keep current during implementation
 
-If implementation changes the plan, update `TECH.md` in the same PR. In particular, revise the tech spec when:
+If the user steers mid-workflow and behavior changed, make sure `PRODUCT.md` is revised before `TECH.md`. If implementation changes the plan, update `TECH.md` in the same PR. In particular, revise the tech spec when:
 
 - module boundaries move
 - data flow or state ownership changes

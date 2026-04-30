@@ -45,23 +45,30 @@ When unsure, write a short product spec first. A lightweight spec is cheaper tha
 
 Before creating files, inspect the project for existing conventions:
 
-- `CONTRIBUTING.md`, `README.md`, `AGENTS.md`, `WARP.md`, `CLAUDE.md`, or equivalent agent docs
-- existing `specs/`, `docs/specs/`, `rfcs/`, `docs/adr/`, or issue-linked directories
-- examples of `PRODUCT.md`, `TECH.md`, `product.md`, `tech.md`, PRDs, design docs, or RFCs
-- test and validation conventions
+- read local `AGENTS.md` first and follow any documented spec root or naming convention
+- then inspect `CONTRIBUTING.md`, `README.md`, `WARP.md`, `CLAUDE.md`, or equivalent agent docs
+- then check existing roots in this order: `specs`, `docs/specs`, `.pi/specs`
+- then search for another `specs` directory if the preferred roots do not exist
+- inspect examples of `PRODUCT.md`, `TECH.md`, `TASKS.md`, PRDs, design docs, or RFCs
+- inspect test and validation conventions
 
 Default convention when none exists:
 
 ```text
-specs/<ticket-or-feature-id>/PRODUCT.md
-specs/<ticket-or-feature-id>/TECH.md
+specs/YYYY-MM-DD-kebab-feature/PRODUCT.md
+specs/YYYY-MM-DD-kebab-feature/TECH.md
+specs/YYYY-MM-DD-kebab-feature/TASKS.md
 ```
 
-Use a ticket id when available (`APP-1234`, `GH408`, `JIRA-123`). Otherwise ask for a short kebab-case feature id. If the package extension is installed, you can call `spec_scaffold` to create the directory and starter files.
+`TASKS.md` is the spec-scoped task database. Keep it as pure Markdown todos in the same directory as the specs so product intent, technical plan, and live progress stay together.
+
+When no convention exists, propose the convention to the user before finalizing it: spec root, date-prefixed directory name, and `TASKS.md` format. If the user agrees or says to proceed, create/update `AGENTS.md` with one sentence for the spec root and one sentence for the `YYYY-MM-DD-kebab-feature` naming format.
+
+Use a ticket id when available (`APP-1234`, `GH408`, `JIRA-123`) only if the project already prefers ticket ids. Otherwise default to `YYYY-MM-DD-kebab-feature`. If the package extension is installed, you can call `spec_scaffold` to create the directory and starter files.
 
 ## Workflow
 
-### 1. Capture intent
+### 1. Capture intent and task shape
 
 Clarify only what is needed to avoid guessing:
 
@@ -73,6 +80,15 @@ Clarify only what is needed to avoid guessing:
 - expected validation bar
 
 If the user already gave enough context, proceed instead of over-interviewing.
+
+For non-trivial workflows, use the built-in task manager when available:
+
+- create compact Markdown todo tasks in the spec directory's `TASKS.md` for product spec, tech spec, implementation, validation, and follow-ups when there are three or more meaningful steps
+- pass `specDir` to task tools when more than one spec exists or the active spec is ambiguous
+- keep task entries compact; detailed rationale belongs in `PRODUCT.md` and `TECH.md`
+- mark a task `in_progress` before starting that phase and `completed` only when it is actually done
+- add dependencies when a task cannot begin until another task completes
+- skip task tracking for tiny one-step fixes or purely conversational answers
 
 ### 2. Write the product spec first
 
@@ -136,10 +152,12 @@ If the extension from this package is installed, the user can invoke:
 
 The extension also exposes tools:
 
-- `spec_scaffold` - create `specs/<id>/PRODUCT.md` and optional `TECH.md` without overwriting files
-- `spec_list` - list current spec directories and whether each has product/tech specs
+- `spec_scaffold` - create `PRODUCT.md`, optional `TECH.md`, and `TASKS.md` under the documented spec root without overwriting files
+- `spec_list` - list current spec directories and whether each has product/tech/tasks files
 
 ## Keep specs current
+
+When the user steers the work mid-conversation, do not patch only the current file. First decide whether the steering changes observable behavior. If yes, update `PRODUCT.md` first, then update `TECH.md`, then update `TASKS.md`, then adjust implementation and tests as needed. If behavior does not change, update the lowest affected layer and explain why higher layers stay unchanged.
 
 Update `PRODUCT.md` when:
 
@@ -153,4 +171,11 @@ Update `TECH.md` when:
 - risks, dependencies, rollout, or migration assumptions change
 - the testing or validation plan changes
 
-The checked-in specs should describe the feature that actually ships, not just the initial intent.
+Update `TASKS.md` when:
+
+- phase status changes
+- task dependencies change
+- user steering changes sequencing or introduces/removes work
+- task file drift is detected; run or recommend `npm run tasks:repair` when available
+
+The checked-in specs and tasks should describe the feature that actually ships, not just the initial intent.

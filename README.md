@@ -31,8 +31,31 @@ The extension registers direct commands so you do not have to remember skill nam
 
 The extension also registers helper tools that the model can call when useful:
 
-- `spec_scaffold` - creates `specs/<id>/PRODUCT.md` and optional `TECH.md` scaffolds without overwriting existing files.
-- `spec_list` - lists spec directories under `specs/` and reports whether each has product and tech specs.
+- `spec_scaffold` - creates `PRODUCT.md`, optional `TECH.md`, and `TASKS.md` under the documented spec root without overwriting existing files.
+- `spec_list` - lists spec directories under the documented spec root and reports whether each has product, tech, and task files.
+
+### Built-in Task Manager
+
+Spec-driven work often needs a living task plan, not just static docs. This package includes a built-in task manager adapted from [`@tintinweb/pi-tasks`](https://github.com/tintinweb/pi-tasks), so no separate task package is required.
+
+It registers:
+
+```text
+/tasks
+TaskCreate
+TaskList
+TaskGet
+TaskUpdate
+TaskOutput
+TaskStop
+TaskExecute
+```
+
+Use it for non-trivial spec workflows: create tasks for product spec, tech spec, implementation steps, validation, and follow-ups; mark tasks `in_progress` before starting and `completed` only when the work and relevant verification are done. Skip task tracking for tiny one-step fixes.
+
+By default, spec-driven tasks are stored in the active spec directory as `TASKS.md`, next to `PRODUCT.md` and `TECH.md`. That file is the task database and uses pure Markdown todos, not embedded JSON. Task tools accept `specDir` when more than one spec exists, for example `specs/2026-05-01-builtin-task-workflow`.
+
+Tasks can also be stored in memory, per session, or project-wide under `.pi/tasks/`; settings live in `.pi/tasks-config.json`. `PI_TASKS=off`, named lists, and explicit paths are supported for automation or shared coordination.
 
 ### Prompt Templates
 
@@ -108,32 +131,37 @@ Audit an existing project or feature:
 ## Recommended Workflow
 
 1. **Start from an issue or feature idea.** Use `/spec-workflow` when the change is substantial, ambiguous, risky, or likely to involve multiple files.
-2. **Write `PRODUCT.md` first.** Capture observable behavior as numbered, testable invariants. Keep implementation details out.
-3. **Write `TECH.md` when warranted.** Read the product spec and current source code. Ground the plan in real files, types, state, data flow, risks, and validation.
-4. **Implement from approved specs.** Treat `PRODUCT.md` as behavior source of truth and `TECH.md` as the implementation plan.
-5. **Keep specs current.** If implementation changes behavior or architecture, update the relevant spec in the same PR.
-6. **Verify against behavior.** Tests and manual checks should map back to the behavior invariants in the product spec.
-7. **Audit before finishing.** Use `/spec-audit` when you want a final check for spec/code/test drift.
+2. **Discover conventions first.** Read `AGENTS.md`; if no spec root is documented, prefer existing `specs`, `docs/specs`, `.pi/specs`, then any nested `specs`, then create `./specs` and record the convention in `AGENTS.md`.
+3. **Confirm new conventions.** Before finalizing an inferred convention, tell the user the planned spec root, date-prefixed directory name, and pure Markdown `TASKS.md` format, then ask whether to proceed or adjust.
+4. **Create live tasks for non-trivial work.** Use `TaskCreate` / `TaskUpdate` to track product spec, tech spec, implementation, validation, and follow-ups when the workflow has multiple meaningful steps.
+5. **Write `PRODUCT.md` first.** Capture observable behavior as numbered, testable invariants. Keep implementation details out.
+6. **Write `TECH.md` when warranted.** Read the product spec and current source code. Ground the plan in real files, types, state, data flow, risks, and validation.
+7. **Implement from approved specs.** Treat `PRODUCT.md` as behavior source of truth and `TECH.md` as the implementation plan.
+8. **Handle steering top-down.** If the user steers mid-workflow and behavior changes, update `PRODUCT.md`, then `TECH.md`, then `TASKS.md`, then implementation/tests as needed.
+9. **Keep specs and tasks current.** If implementation changes behavior, architecture, or sequencing, update the relevant spec and task state in the same PR.
+10. **Verify against behavior.** Tests and manual checks should map back to the behavior invariants in the product spec.
+11. **Audit before finishing.** Use `/spec-audit` when you want a final check for spec/code/test/task drift.
 
 ## Default Spec Layout
 
 When a repository does not already have a convention, this package uses:
 
 ```text
-specs/<ticket-or-feature-id>/PRODUCT.md
-specs/<ticket-or-feature-id>/TECH.md
+specs/YYYY-MM-DD-kebab-feature/PRODUCT.md
+specs/YYYY-MM-DD-kebab-feature/TECH.md
+specs/YYYY-MM-DD-kebab-feature/TASKS.md
 ```
 
 Examples:
 
 ```text
-specs/APP-1234/PRODUCT.md
-specs/APP-1234/TECH.md
-specs/GH408/PRODUCT.md
-specs/markdown-table-rendering/TECH.md
+specs/2026-05-01-builtin-task-workflow/PRODUCT.md
+specs/2026-05-01-builtin-task-workflow/TECH.md
+specs/2026-05-01-builtin-task-workflow/TASKS.md
+specs/2026-05-01-mermaid-markdown-in-plans/PRODUCT.md
 ```
 
-The skills first inspect the current repository for existing conventions. If the project already uses `docs/rfcs/`, lowercase `product.md`, or another pattern, the agent should follow that instead.
+The skills first inspect `AGENTS.md` and current repository conventions. If no convention exists, the agent should propose the default to the user, then record the chosen spec root and `YYYY-MM-DD-kebab-feature` naming format in `AGENTS.md`.
 
 ## What Makes a Good Product Spec
 
@@ -184,15 +212,31 @@ When in doubt, write a short product spec. It is often cheaper than resolving mi
 
 ```text
 pi-spec-driven-dev/
+├── AGENTS.md
 ├── package.json
 ├── README.md
+├── THIRD_PARTY_NOTICES.md
 ├── extensions/
 │   └── spec-driven-dev.ts
+├── scripts/
+│   └── sync-tasks.mjs
+├── src/
+│   └── tasks/
+│       ├── index.ts
+│       ├── task-store.ts
+│       ├── auto-clear.ts
+│       ├── process-tracker.ts
+│       ├── tasks-config.ts
+│       ├── types.ts
+│       └── ui/
 ├── prompts/
 │   ├── audit-specs.md
 │   ├── implement-spec.md
 │   ├── write-product-spec.md
 │   └── write-tech-spec.md
+├── test/
+│   ├── package-shape.test.mjs
+│   └── task-store.test.mjs
 └── skills/
     ├── spec-audit/
     │   └── SKILL.md
@@ -208,30 +252,34 @@ pi-spec-driven-dev/
 
 ## Development
 
-Validate the package shape:
+Run the test suite:
 
 ```bash
-python3 - <<'PY'
-import json, re
-from pathlib import Path
-root = Path('.')
-json.load(open(root / 'package.json'))
-for skill in (root / 'skills').iterdir():
-    if not skill.is_dir():
-        continue
-    text = (skill / 'SKILL.md').read_text()
-    name = re.search(r'^name:\\s*(.+)$', text, re.M).group(1).strip()
-    assert name == skill.name, f'{skill}: frontmatter name {name}'
-    desc = re.search(r'^description:\\s*(.+)$', text, re.M).group(1)
-    assert len(desc) <= 1024, skill
-print('ok')
-PY
+npm test
 ```
 
-Test-load locally:
+The tests use Node's built-in test runner with TypeScript type stripping, so no test framework dependency is required. They cover:
+
+- package manifest and pi resource shape
+- skill frontmatter consistency
+- duplicate command/prompt prevention
+- built-in task-manager source registration
+- task-store CRUD, metadata, dependency warnings, deletion cleanup, JSON compatibility, pure Markdown TASKS.md persistence, and auto-clear behavior
+- README/spec/prompt coverage for AGENTS discovery, steering alignment, and the built-in task workflow
+
+Check and repair spec task files:
 
 ```bash
-PI_OFFLINE=1 pi --no-extensions -e . --no-context-files -p "/spec-help"
+npm run tasks:check
+npm run tasks:repair
+```
+
+`tasks:check` verifies discovered `TASKS.md` files under `specs`, `docs/specs`, and `.pi/specs` are canonical pure Markdown todos. `tasks:repair` rewrites them into the normalized Markdown form when safe.
+
+Smoke-test local pi loading:
+
+```bash
+npm run test:smoke
 ```
 
 ## Credits
@@ -242,6 +290,8 @@ This package generalizes the spec-driven workflow used in the Warp codebase, esp
 - `write-product-spec`
 - `write-tech-spec`
 - `implement-specs`
+
+The built-in task manager is adapted from [`@tintinweb/pi-tasks`](https://github.com/tintinweb/pi-tasks) under the MIT license. See `THIRD_PARTY_NOTICES.md`.
 
 The package is intentionally project-agnostic: it reads the current repository's conventions first and only falls back to `specs/<id>/PRODUCT.md` + `TECH.md` when no stronger convention exists.
 

@@ -11,6 +11,18 @@
     "product-spec",
     "tech-spec"
   ],
+  "scripts": {
+    "test": "node --test --experimental-strip-types test/*.test.mjs && npm run tasks:check",
+    "test:unit": "node --test --experimental-strip-types test/*.test.mjs",
+    "test:smoke": "PI_OFFLINE=1 pi --no-extensions -e . --no-context-files -p \"/spec-help\"",
+    "tasks:check": "node --experimental-strip-types scripts/sync-tasks.mjs --check",
+    "tasks:repair": "node --experimental-strip-types scripts/sync-tasks.mjs --write"
+  },
+  "peerDependencies": {
+    "@mariozechner/pi-coding-agent": "*",
+    "@mariozechner/pi-tui": "*",
+    "typebox": "*"
+  },
   "pi": {
     "extensions": [
       "./extensions/*.ts"

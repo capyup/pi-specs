@@ -41,13 +41,15 @@ For UI or interaction features, ask whether a Figma/mock exists unless the user 
 
 ## File location
 
-Follow the repository's existing convention when present. Default:
+Follow the repository's existing convention when present. Read local `AGENTS.md` first for spec root and naming rules. If no convention exists, propose the default to the user before finalizing it:
 
 ```text
-specs/<ticket-or-feature-id>/PRODUCT.md
+specs/YYYY-MM-DD-kebab-feature/PRODUCT.md
+specs/YYYY-MM-DD-kebab-feature/TECH.md
+specs/YYYY-MM-DD-kebab-feature/TASKS.md
 ```
 
-If no id is available, ask for one or suggest a short kebab-case feature id. If the `spec_scaffold` tool is available, use it when creating a new spec directory.
+If the user agrees to a newly inferred default, ensure `AGENTS.md` records the spec root and `YYYY-MM-DD-kebab-feature` format in short sentences. If the `spec_scaffold` tool is available, use it when creating a new spec directory.
 
 ## Required structure
 
@@ -116,4 +118,4 @@ When drafting for the user, write the file and summarize:
 - open questions, if any
 - suggested next step, usually `TECH.md` via the `spec-tech` skill
 
-When revising an existing product spec, preserve decisions that are still valid and update only the stale behavior.
+When revising an existing product spec, preserve decisions that are still valid and update only the stale behavior. If the revision comes from mid-workflow user steering, update `PRODUCT.md` first and call out that `TECH.md` and `TASKS.md` may need follow-up updates before implementation continues.

@@ -24,6 +24,7 @@ Start broad, then narrow:
 - `.agents/skills/`, `.pi/skills/`, `.pi/prompts/`, package resources
 - `specs/`, `docs/specs/`, `rfcs/`, `docs/adr/`, or equivalent
 - PR templates and CI/test docs
+- built-in task-manager state in pure Markdown `specs/<id>/TASKS.md` or legacy task files under `.pi/tasks/`
 - representative code and tests for 2-3 specs
 
 If the extension tool is available, use `spec_list` to get a quick inventory, then inspect representative specs directly.
@@ -87,14 +88,15 @@ For `TECH.md`, check:
 - risks and compatibility are addressed
 - deferred follow-ups are explicit
 
-## Spec/code drift checklist
+## Spec/code/task drift checklist
 
 For a target spec directory:
 
 1. Read `PRODUCT.md` and list core behavior invariants.
 2. Read `TECH.md` and list expected code paths and validation.
-3. Inspect current code and tests.
-4. Mark each invariant as:
+3. Inspect built-in task-manager state if present and note stale, malformed, blocked, or completed tasks that disagree with the specs. Recommend `npm run tasks:repair` when Markdown task files are not normalized.
+4. Inspect current code and tests.
+5. Mark each invariant as:
    - `implemented and tested`
    - `implemented but not tested`
    - `partially implemented`
