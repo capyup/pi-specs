@@ -89,6 +89,12 @@ Prefer targeted verification first, then broader checks:
 
 Map verification back to the product behavior numbers. If a behavior is not verified, explain the residual risk.
 
+Run the most relevant validation available after changes: targeted tests for changed behavior, type checks or lint checks when applicable, build checks for affected packages, and a minimal smoke test when full validation is too expensive. If validation cannot be run, explain why and name the next best check.
+
+## Stop conditions
+
+Stop when the current specs, code, and tests agree on the implemented behavior; relevant validation has either passed or been honestly reported as unavailable; and any remaining blockers or follow-ups are explicit. Do not broaden the task into unrelated refactors or speculative improvements.
+
 ## Final report
 
 When done, summarize:

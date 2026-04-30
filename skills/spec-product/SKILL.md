@@ -18,6 +18,14 @@ A product spec describes the surface from the consumer's point of view:
 
 Avoid internal implementation details. Put implementation plans, test strategy, and validation mechanics in `TECH.md`.
 
+## Drafting posture
+
+- Write the desired outcome first, then behavior invariants. Avoid process-heavy prose that tells implementers how to think instead of what must be true.
+- Ask for the smallest missing detail only when it materially changes behavior, scope, or risk. Otherwise proceed with clearly labeled assumptions.
+- Use provided or retrieved facts for concrete claims about users, metrics, roadmap status, customer outcomes, product capabilities, deadlines, and compatibility. Do not invent specifics to make the spec sound stronger.
+- Preserve the requested artifact, length, structure, and genre when revising. Improve clarity and correctness without adding extra sections or scope unless the user asked for them.
+- Stop when the behavior is numbered, testable, scoped, and honest about open questions.
+
 ## Before writing
 
 Use existing context first. If needed, ask concise questions about:

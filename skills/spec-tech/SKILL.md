@@ -25,6 +25,8 @@ Read, in order:
 3. relevant source files, tests, and existing patterns
 4. nearby specs for similar changes
 
+Use the minimum code and document inspection needed to ground the plan. Make another pass only when a required file, API, state transition, owner, migration detail, or validation path is missing or unsupported.
+
 Identify:
 
 - entry points for the user flow or API
@@ -32,6 +34,17 @@ Identify:
 - ownership boundaries and persistence/network/migration concerns
 - test harnesses and validation conventions
 - feature flags or rollout mechanisms
+
+## Plan traceability
+
+Make the implementation plan traceable rather than exhaustive. Include:
+
+- product behavior requirements and where the plan addresses them
+- named files, modules, types, APIs, commands, or systems involved
+- state transitions, data flow, ownership, and failure behavior where relevant
+- validation commands or manual checks mapped to product behavior numbers
+- privacy, security, compatibility, rollout, and migration considerations when they can affect the design
+- open questions that materially affect implementation
 
 ## File location
 

@@ -28,6 +28,13 @@ Start broad, then narrow:
 
 If the extension tool is available, use `spec_list` to get a quick inventory, then inspect representative specs directly.
 
+## Evidence budget and uncertainty
+
+- Use enough repository evidence to answer the audit question, then stop. Do not keep searching just to add examples or improve phrasing.
+- Make another inspection pass only when a core claim lacks support, a required spec/code/test artifact is missing, or the user asked for exhaustive coverage.
+- Absence of evidence is not automatically evidence that a workflow or behavior does not exist. Say `not found in inspected files` when appropriate.
+- Cite concrete file paths and line references when possible so recommendations are reviewable.
+
 ## Workflow audit report
 
 Structure the answer like this:

@@ -15,6 +15,13 @@ Use this skill to drive a feature from intent to implementation through checked-
 - Code, tests, and specs should describe the same feature by the time the PR ships.
 - Skip specs for small local bug fixes, narrow refactors, and obvious one-file tweaks.
 
+## Prompting posture
+
+- Prefer outcome-first guidance: define the artifact, success criteria, constraints, available evidence, and final answer shape; do not over-prescribe the agent's internal process.
+- Use absolute words like `always`, `never`, and `must` only for real invariants such as safety, file ownership, required outputs, or non-destructive behavior. Use decision rules for judgment calls.
+- For multi-step or tool-heavy work, begin with a short visible preamble that acknowledges the task and states the first step.
+- Stop when the user's core request is satisfied with enough evidence, explicit open questions, and a clear next action. Do not keep expanding the workflow just to add polish.
+
 ## Decide whether specs are warranted
 
 Strongly prefer specs when the change has any of these traits:
