@@ -1,24 +1,46 @@
 {
-  "name": "pi-specs",
-  "version": "0.1.6",
-  "description": "Pi package for spec-driven development workflows: product specs, tech specs, implementation, and spec audits. Task tracking is delegated to @tintinweb/pi-tasks. (Renamed from pi-spec-driven-dev.)",
+  "name": "@capyup/pi-specs",
+  "version": "0.1.7",
+  "description": "Pi package for spec-driven development workflows: PRODUCT.md, TECH.md, implementation, and audits. Task tracking is delegated to @tintinweb/pi-tasks.",
   "type": "module",
   "keywords": [
     "pi-package",
     "pi",
-    "agent-skills",
+    "pi-extension",
+    "pi-skill",
     "spec-driven-development",
     "product-spec",
     "tech-spec"
   ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/capyup/pi-specs"
+  },
+  "bugs": {
+    "url": "https://github.com/capyup/pi-specs/issues"
+  },
+  "homepage": "https://github.com/capyup/pi-specs#readme",
+  "author": "capyup",
+  "license": "MIT",
+  "files": [
+    "extensions",
+    "skills",
+    "AGENTS.md",
+    "THIRD_PARTY_NOTICES.md",
+    "LICENSE",
+    "README.md"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
   "scripts": {
     "test": "node --test --experimental-strip-types test/*.test.mjs",
     "test:unit": "node --test --experimental-strip-types test/*.test.mjs",
     "test:smoke": "PI_OFFLINE=1 pi --no-extensions -e . --no-context-files -p \"/specs-help\""
   },
   "peerDependencies": {
-    "@mariozechner/pi-coding-agent": "*",
-    "@mariozechner/pi-tui": "*",
+    "@earendil-works/pi-coding-agent": "*",
+    "@earendil-works/pi-tui": "*",
     "typebox": "*"
   },
   "pi": {

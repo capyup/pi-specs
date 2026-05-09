@@ -8,12 +8,12 @@ const readText = (path) => readFile(new URL(path, root), "utf-8");
 test("package manifest exposes local pi resources and standard peers", async () => {
   const pkg = JSON.parse(await readText("package.json"));
 
-  assert.equal(pkg.name, "pi-specs");
+  assert.equal(pkg.name, "@capyup/pi-specs");
   assert.deepEqual(pkg.pi.extensions, ["./extensions/*.ts"]);
   assert.deepEqual(pkg.pi.skills, ["./skills"]);
   assert.equal(pkg.pi.prompts, undefined);
-  assert.equal(pkg.peerDependencies["@mariozechner/pi-coding-agent"], "*");
-  assert.equal(pkg.peerDependencies["@mariozechner/pi-tui"], "*");
+  assert.equal(pkg.peerDependencies["@earendil-works/pi-coding-agent"], "*");
+  assert.equal(pkg.peerDependencies["@earendil-works/pi-tui"], "*");
   assert.equal(pkg.peerDependencies.typebox, "*");
   assert.match(pkg.scripts.test, /node --test --experimental-strip-types test\/\*\.test\.mjs/);
   // Task tracking now lives in @tintinweb/pi-tasks; this package should not

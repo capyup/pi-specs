@@ -1,6 +1,6 @@
 # pi-specs
 
-> Renamed from `pi-spec-driven-dev` in `0.1.5`. Old `git:github.com/lulucatdev/pi-spec-driven-dev` URLs redirect, but new installs should use `git:github.com/lulucatdev/pi-specs`.
+> Moved to `@capyup` and published to npm in `0.1.7`. Old `git:github.com/lulucatdev/pi-spec-driven-dev` and `git:github.com/lulucatdev/pi-specs` URLs both redirect on GitHub. New installs should prefer `pi install npm:@capyup/pi-specs`.
 
 A pi package for spec-driven development. It turns a feature idea into a reviewed `PRODUCT.md`, a codebase-grounded `TECH.md`, and then an implementation that keeps specs, code, and tests aligned.
 
@@ -74,7 +74,7 @@ Pi may still show `skill:spec-*` entries when `enableSkillCommands` is enabled. 
 Install from GitHub:
 
 ```bash
-pi install git:github.com/lulucatdev/pi-specs
+pi install npm:@capyup/pi-specs
 ```
 
 Or install from a local checkout:
@@ -92,7 +92,7 @@ Reload an existing pi session after installing:
 Try it without installing permanently:
 
 ```bash
-pi -e git:github.com/lulucatdev/pi-specs
+pi -e npm:@capyup/pi-specs
 ```
 
 ## Quick Start
