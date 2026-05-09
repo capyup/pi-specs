@@ -1,6 +1,6 @@
 {
   "name": "@capyup/pi-specs",
-  "version": "0.1.7",
+  "version": "0.1.8",
   "description": "Pi package for spec-driven development workflows: PRODUCT.md, TECH.md, implementation, and audits. Task tracking is delegated to @tintinweb/pi-tasks.",
   "type": "module",
   "keywords": [

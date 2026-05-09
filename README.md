@@ -6,6 +6,17 @@ A pi package for spec-driven development. It turns a feature idea into a reviewe
 
 This package is adapted from Warp's internal spec-driven workflow and generalized for any repository that benefits from PRD-style product specs, technical design docs, and agent-friendly implementation plans.
 
+## Required Dependencies
+
+`pi-specs` does not ship its own task runtime. Task tracking (`TaskCreate`, `TaskList`, `TaskUpdate`, ..., `/tasks`) is provided by [`@tintinweb/pi-tasks`](https://github.com/tintinweb/pi-tasks), which you must install alongside this package:
+
+```bash
+pi install npm:@tintinweb/pi-tasks   # required runtime dependency
+pi install npm:@capyup/pi-specs      # this package
+```
+
+If `pi-tasks` is missing the spec workflow still works for static `PRODUCT.md` / `TECH.md` editing, but the `Task*` tools and `/tasks` command will be unavailable and the `specs-implement` / `specs-audit` skills will skip the live task pieces.
+
 ## What This Package Adds
 
 ### Skills
@@ -38,13 +49,7 @@ The extension also registers helper tools that the model can call when useful:
 
 ### Task Manager (provided by `@tintinweb/pi-tasks`)
 
-Spec-driven work needs a living task plan, not just static docs. As of `0.1.4`, this package no longer ships its own task runtime; install [`@tintinweb/pi-tasks`](https://github.com/tintinweb/pi-tasks) alongside this package and pi will load it as a separate extension:
-
-```bash
-pi install npm:@tintinweb/pi-tasks
-```
-
-With `pi-tasks` installed you get:
+See [Required Dependencies](#required-dependencies) above for installation. Once `@tintinweb/pi-tasks` is installed, the spec workflow can drive these tools and the `/tasks` command:
 
 ```text
 /tasks
@@ -67,19 +72,28 @@ Tasks can also be stored in memory, per session, or project-wide under `.pi/task
 
 The canonical slash commands are the extension commands listed above. This package intentionally does not ship prompt templates, because template commands would duplicate the same workflows in the command palette.
 
-Pi may still show `skill:spec-*` entries when `enableSkillCommands` is enabled. Those are pi's direct skill invocation commands, not separate workflows; use `/spec-*` as the normal entry points.
+Pi may still show `skill:specs*` entries when `enableSkillCommands` is enabled. Those are pi's direct skill invocation commands, not separate workflows; use `/specs*` as the normal entry points.
 
 ## Install
 
-Install from GitHub:
+From npm (recommended):
 
 ```bash
+pi install npm:@tintinweb/pi-tasks   # required, see Required Dependencies above
 pi install npm:@capyup/pi-specs
 ```
 
-Or install from a local checkout:
+From GitHub (always tracks `main`):
 
 ```bash
+pi install npm:@tintinweb/pi-tasks
+pi install git:github.com/capyup/pi-specs
+```
+
+From a local checkout:
+
+```bash
+pi install npm:@tintinweb/pi-tasks
 pi install /Users/lucas/Developer/pi-specs
 ```
 
