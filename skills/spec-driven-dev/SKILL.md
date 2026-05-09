@@ -176,6 +176,6 @@ Update `TASKS.yaml` when:
 - phase status changes
 - task dependencies change
 - user steering changes sequencing or introduces/removes work
-- task file drift is detected; run or recommend `npm run tasks:repair` when available
+- task file drift is detected; rewrite the affected `TASKS.yaml` (manually, or via `@tintinweb/pi-tasks` tooling)
 
 The checked-in specs and tasks should describe the feature that actually ships, not just the initial intent.

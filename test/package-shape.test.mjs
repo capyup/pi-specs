@@ -5,7 +5,7 @@ import test from "node:test";
 const root = new URL("..", import.meta.url);
 const readText = (path) => readFile(new URL(path, root), "utf-8");
 
-test("package manifest exposes local pi resources and task runtime peers", async () => {
+test("package manifest exposes local pi resources and standard peers", async () => {
   const pkg = JSON.parse(await readText("package.json"));
 
   assert.equal(pkg.name, "pi-spec-driven-dev");
@@ -16,8 +16,10 @@ test("package manifest exposes local pi resources and task runtime peers", async
   assert.equal(pkg.peerDependencies["@mariozechner/pi-tui"], "*");
   assert.equal(pkg.peerDependencies.typebox, "*");
   assert.match(pkg.scripts.test, /node --test --experimental-strip-types test\/\*\.test\.mjs/);
-  assert.equal(pkg.scripts["tasks:check"], "node --experimental-strip-types scripts/sync-tasks.mjs --check");
-  assert.equal(pkg.scripts["tasks:repair"], "node --experimental-strip-types scripts/sync-tasks.mjs --write");
+  // Task tracking now lives in @tintinweb/pi-tasks; this package should not
+  // ship its own sync-tasks scripts anymore.
+  assert.equal(pkg.scripts["tasks:check"], undefined);
+  assert.equal(pkg.scripts["tasks:repair"], undefined);
 });
 
 test("skills have matching frontmatter names", async () => {
@@ -33,9 +35,11 @@ test("skills have matching frontmatter names", async () => {
   }
 });
 
-test("extension registers spec commands, task manager, and no prompt template commands remain", async () => {
+test("extension registers spec commands and no longer registers tasks itself", async () => {
   const extension = await readText("extensions/spec-driven-dev.ts");
-  assert.match(extension, /registerTasks\(pi\)/);
+  // Tasks are provided by @tintinweb/pi-tasks now, the extension must not register them.
+  assert.doesNotMatch(extension, /registerTasks\(pi\)/);
+  assert.doesNotMatch(extension, /from "\.\.\/src\/tasks/);
   for (const command of ["spec-workflow", "spec-product", "spec-tech", "spec-implement", "spec-audit", "spec-help"]) {
     assert.match(extension, new RegExp(command));
   }
@@ -47,28 +51,7 @@ test("extension registers spec commands, task manager, and no prompt template co
   assert.deepEqual(prompts.filter((name) => name.endsWith(".md")), []);
 });
 
-test("built-in task manager source covers documented tools and storage behavior", async () => {
-  const taskIndex = await readText("src/tasks/index.ts");
-  for (const name of ["TaskCreate", "TaskList", "TaskGet", "TaskUpdate", "TaskOutput", "TaskStop", "TaskExecute"]) {
-    assert.match(taskIndex, new RegExp(`name: \\\"${name}\\\"`));
-  }
-  assert.match(taskIndex, /registerCommand\("tasks"/);
-  assert.match(taskIndex, /PI_TASKS/);
-  assert.match(taskIndex, /TASKS\.yaml/);
-  assert.match(taskIndex, /specDir/);
-  assert.match(taskIndex, /subagents:rpc:spawn/);
-  assert.match(taskIndex, /SYSTEM_REMINDER/);
-  assert.match(taskIndex, /taskScope !== "spec"/);
-
-  const store = await readText("src/tasks/task-store.ts");
-  assert.match(store, /acquireLock/);
-  assert.match(store, /renderYamlTaskFile/);
-  assert.match(store, /parseYamlTaskFile/);
-  assert.match(store, /clearCompleted/);
-  assert.match(store, /addBlockedBy/);
-});
-
-test("README documents commands, task tools, validation, and attribution", async () => {
+test("README documents commands, validation, and the pi-tasks dependency", async () => {
   const readme = await readText("README.md");
   for (const snippet of [
     "/spec-workflow <feature, issue, or goal>",
@@ -80,32 +63,14 @@ test("README documents commands, task tools, validation, and attribution", async
     "AGENTS.md",
     "YYYY-MM-DD-kebab-feature",
     "YAML",
-    "npm run tasks:check",
     "npm test",
     "THIRD_PARTY_NOTICES.md",
     "@tintinweb/pi-tasks",
   ]) {
     assert.match(readme, new RegExp(snippet.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
   }
-});
-
-test("builtin task workflow specs are checked in and behavior-focused", async () => {
-  const product = await readText("specs/2026-05-01-builtin-task-workflow/PRODUCT.md");
-  const tech = await readText("specs/2026-05-01-builtin-task-workflow/TECH.md");
-  const tasks = await readText("specs/2026-05-01-builtin-task-workflow/TASKS.yaml");
-
-  assert.match(product, /## Behavior/);
-  assert.match(product, /built-in task manager/i);
-  assert.match(product, /TaskCreate/);
-  assert.match(product, /TASKS\.yaml/);
-  assert.match(product, /1:1 task database/i);
-  assert.match(product, /without installing a separate task package/i);
-  assert.match(product, /steers the work mid-stream/i);
-  assert.match(tech, /src\/tasks/);
-  assert.match(tech, /Testing and validation/);
-  assert.match(tasks, /version: 1/);
-  assert.match(tasks, /status: "completed"/);
-  assert.doesNotMatch(tasks, /pi-spec-tasks-db/);
+  // Old internal task runtime must no longer be advertised as bundled.
+  assert.doesNotMatch(readme, /npm run tasks:check/);
 });
 
 test("AGENTS and skills document convention discovery and steering alignment", async () => {

@@ -34,11 +34,15 @@ The extension also registers helper tools that the model can call when useful:
 - `spec_scaffold` - creates `PRODUCT.md`, optional `TECH.md`, and `TASKS.yaml` under the documented spec root without overwriting existing files.
 - `spec_list` - lists spec directories under the documented spec root and reports whether each has product, tech, and task files.
 
-### Built-in Task Manager
+### Task Manager (provided by `@tintinweb/pi-tasks`)
 
-Spec-driven work often needs a living task plan, not just static docs. This package includes a built-in task manager adapted from [`@tintinweb/pi-tasks`](https://github.com/tintinweb/pi-tasks), so no separate task package is required.
+Spec-driven work needs a living task plan, not just static docs. As of `0.1.4`, this package no longer ships its own task runtime; install [`@tintinweb/pi-tasks`](https://github.com/tintinweb/pi-tasks) alongside this package and pi will load it as a separate extension:
 
-It registers:
+```bash
+pi install npm:@tintinweb/pi-tasks
+```
+
+With `pi-tasks` installed you get:
 
 ```text
 /tasks
@@ -51,11 +55,11 @@ TaskStop
 TaskExecute
 ```
 
-Use it for non-trivial spec workflows: create tasks for product spec, tech spec, implementation steps, validation, and follow-ups; mark tasks `in_progress` before starting and `completed` only when the work and relevant verification are done. Skip task tracking for tiny one-step fixes.
+Use them for non-trivial spec workflows: create tasks for product spec, tech spec, implementation steps, validation, and follow-ups; mark tasks `in_progress` before starting and `completed` only when the work and relevant verification are done. Skip task tracking for tiny one-step fixes.
 
 By default, spec-driven tasks are stored in the active spec directory as `TASKS.yaml`, next to `PRODUCT.md` and `TECH.md`. That file is the task database and uses readable YAML. Task tools accept `specDir` when more than one spec exists, for example `specs/2026-05-01-builtin-task-workflow`.
 
-Tasks can also be stored in memory, per session, or project-wide under `.pi/tasks/`; settings live in `.pi/tasks-config.json`. `PI_TASKS=off`, named lists, and explicit paths are supported for automation or shared coordination.
+Tasks can also be stored in memory, per session, or project-wide under `.pi/tasks/`; settings live in `.pi/tasks-config.json`. `PI_TASKS=off`, named lists, and explicit paths are supported for automation or shared coordination. See the [`pi-tasks` README](https://github.com/tintinweb/pi-tasks) for the full configuration surface.
 
 ### Command Palette
 
@@ -211,20 +215,8 @@ pi-spec-driven-dev/
 ├── THIRD_PARTY_NOTICES.md
 ├── extensions/
 │   └── spec-driven-dev.ts
-├── scripts/
-│   └── sync-tasks.mjs
-├── src/
-│   └── tasks/
-│       ├── index.ts
-│       ├── task-store.ts
-│       ├── auto-clear.ts
-│       ├── process-tracker.ts
-│       ├── tasks-config.ts
-│       ├── types.ts
-│       └── ui/
 ├── test/
-│   ├── package-shape.test.mjs
-│   └── task-store.test.mjs
+│   └── package-shape.test.mjs
 └── skills/
     ├── spec-audit/
     │   └── SKILL.md
@@ -250,19 +242,10 @@ The tests use Node's built-in test runner with TypeScript type stripping, so no 
 
 - package manifest and pi resource shape
 - skill frontmatter consistency
-- duplicate command/prompt prevention
-- built-in task-manager source registration
-- task-store CRUD, metadata, dependency warnings, deletion cleanup, JSON compatibility, YAML `TASKS.yaml` persistence, and auto-clear behavior
-- README/spec/prompt coverage for AGENTS discovery, steering alignment, and the built-in task workflow
+- extension shape, including the assertion that this package no longer registers Task* tools itself
+- README/AGENTS coverage for AGENTS discovery, steering alignment, and the `@tintinweb/pi-tasks` dependency
 
-Check and repair spec task files:
-
-```bash
-npm run tasks:check
-npm run tasks:repair
-```
-
-`tasks:check` verifies discovered `TASKS.yaml` files under `specs`, `docs/specs`, and `.pi/specs` are canonical YAML task databases. `tasks:repair` rewrites them into the normalized YAML form when safe.
+If you also need to lint or rewrite `TASKS.yaml` files outside pi, use the upstream `@tintinweb/pi-tasks` tooling.
 
 Smoke-test local pi loading:
 
@@ -279,7 +262,7 @@ This package generalizes the spec-driven workflow used in the Warp codebase, esp
 - `write-tech-spec`
 - `implement-specs`
 
-The built-in task manager is adapted from [`@tintinweb/pi-tasks`](https://github.com/tintinweb/pi-tasks) under the MIT license. See `THIRD_PARTY_NOTICES.md`.
+Task tracking is provided by [`@tintinweb/pi-tasks`](https://github.com/tintinweb/pi-tasks) under the MIT license. See `THIRD_PARTY_NOTICES.md`.
 
 The package is intentionally project-agnostic: it reads the current repository's conventions first and only falls back to `specs/<id>/PRODUCT.md` + `TECH.md` when no stronger convention exists.
 

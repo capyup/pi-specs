@@ -2,7 +2,6 @@ import { access, appendFile, mkdir, readdir, readFile, writeFile } from "node:fs
 import { join, resolve } from "node:path";
 import type { ExtensionAPI, ExtensionCommandContext } from "@mariozechner/pi-coding-agent";
 import { Type } from "typebox";
-import { registerTasks } from "../src/tasks/index.js";
 
 const COMMANDS = [
 	{
@@ -236,8 +235,6 @@ tasks: []
 }
 
 export default function specDrivenDevExtension(pi: ExtensionAPI) {
-	registerTasks(pi);
-
 	for (const command of COMMANDS) {
 		pi.registerCommand(command.name, {
 			description: command.description,
@@ -251,8 +248,8 @@ export default function specDrivenDevExtension(pi: ExtensionAPI) {
 		description: "Show spec-driven development commands from pi-spec-driven-dev",
 		handler: async (_args, ctx) => {
 			const lines = COMMANDS.map((command) => `${command.usage} - ${command.description}`);
-			lines.push("/tasks - Manage built-in workflow tasks");
-			lines.push("Task tools: TaskCreate, TaskList, TaskGet, TaskUpdate, TaskOutput, TaskStop, TaskExecute");
+			lines.push("/tasks - Manage workflow tasks (provided by @tintinweb/pi-tasks)");
+			lines.push("Task tools (from @tintinweb/pi-tasks): TaskCreate, TaskList, TaskGet, TaskUpdate, TaskOutput, TaskStop, TaskExecute");
 			lines.push("/spec-help - Show this help");
 			ctx.ui.notify(lines.join("\n"), "info");
 		},

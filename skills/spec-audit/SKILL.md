@@ -98,7 +98,7 @@ For a target spec directory:
 
 1. Read `PRODUCT.md` and list core behavior invariants.
 2. Read `TECH.md` and list expected code paths and validation.
-3. Inspect built-in task-manager state if present and note stale, malformed, blocked, or completed tasks that disagree with the specs. Recommend `npm run tasks:repair` when YAML task files are not normalized.
+3. Inspect `@tintinweb/pi-tasks` state if installed and note stale, malformed, blocked, or completed tasks that disagree with the specs. Recommend rewriting `TASKS.yaml` (manually or with `pi-tasks` tooling) when files are not normalized.
 4. Inspect current code and tests.
 5. Mark each invariant as:
    - `implemented and tested`
