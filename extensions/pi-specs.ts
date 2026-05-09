@@ -245,7 +245,7 @@ export default function specDrivenDevExtension(pi: ExtensionAPI) {
 	}
 
 	pi.registerCommand("spec-help", {
-		description: "Show spec-driven development commands from pi-spec-driven-dev",
+		description: "Show spec-driven development commands from pi-specs",
 		handler: async (_args, ctx) => {
 			const lines = COMMANDS.map((command) => `${command.usage} - ${command.description}`);
 			lines.push("/tasks - Manage workflow tasks (provided by @tintinweb/pi-tasks)");

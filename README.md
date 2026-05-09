@@ -1,4 +1,6 @@
-# pi-spec-driven-dev
+# pi-specs
+
+> Renamed from `pi-spec-driven-dev` in `0.1.5`. Old `git:github.com/lulucatdev/pi-spec-driven-dev` URLs redirect, but new installs should use `git:github.com/lulucatdev/pi-specs`.
 
 A pi package for spec-driven development. It turns a feature idea into a reviewed `PRODUCT.md`, a codebase-grounded `TECH.md`, and then an implementation that keeps specs, code, and tests aligned.
 
@@ -72,13 +74,13 @@ Pi may still show `skill:spec-*` entries when `enableSkillCommands` is enabled. 
 Install from GitHub:
 
 ```bash
-pi install git:github.com/lulucatdev/pi-spec-driven-dev
+pi install git:github.com/lulucatdev/pi-specs
 ```
 
 Or install from a local checkout:
 
 ```bash
-pi install /Users/lucas/pi-spec-driven-dev
+pi install /Users/lucas/Developer/pi-specs
 ```
 
 Reload an existing pi session after installing:
@@ -90,7 +92,7 @@ Reload an existing pi session after installing:
 Try it without installing permanently:
 
 ```bash
-pi -e git:github.com/lulucatdev/pi-spec-driven-dev
+pi -e git:github.com/lulucatdev/pi-specs
 ```
 
 ## Quick Start
@@ -208,13 +210,13 @@ When in doubt, write a short product spec. It is often cheaper than resolving mi
 ## Package Structure
 
 ```text
-pi-spec-driven-dev/
+pi-specs/
 ├── AGENTS.md
 ├── package.json
 ├── README.md
 ├── THIRD_PARTY_NOTICES.md
 ├── extensions/
-│   └── spec-driven-dev.ts
+│   └── pi-specs.ts
 ├── test/
 │   └── package-shape.test.mjs
 └── skills/

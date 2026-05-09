@@ -8,7 +8,7 @@ const readText = (path) => readFile(new URL(path, root), "utf-8");
 test("package manifest exposes local pi resources and standard peers", async () => {
   const pkg = JSON.parse(await readText("package.json"));
 
-  assert.equal(pkg.name, "pi-spec-driven-dev");
+  assert.equal(pkg.name, "pi-specs");
   assert.deepEqual(pkg.pi.extensions, ["./extensions/*.ts"]);
   assert.deepEqual(pkg.pi.skills, ["./skills"]);
   assert.equal(pkg.pi.prompts, undefined);
@@ -36,7 +36,7 @@ test("skills have matching frontmatter names", async () => {
 });
 
 test("extension registers spec commands and no longer registers tasks itself", async () => {
-  const extension = await readText("extensions/spec-driven-dev.ts");
+  const extension = await readText("extensions/pi-specs.ts");
   // Tasks are provided by @tintinweb/pi-tasks now, the extension must not register them.
   assert.doesNotMatch(extension, /registerTasks\(pi\)/);
   assert.doesNotMatch(extension, /from "\.\.\/src\/tasks/);

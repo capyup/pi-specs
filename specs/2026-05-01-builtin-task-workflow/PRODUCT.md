@@ -4,7 +4,9 @@ Issue: user request to integrate the capabilities of `https://github.com/tintinw
 
 ## Summary
 
-`pi-spec-driven-dev` should include a first-class task manager so spec-driven work can be tracked dynamically from intake through product spec, tech spec, implementation, validation, and user steering. Users and agents should see live task progress, manage dependencies, persist work inside each spec directory, and optionally coordinate subagent execution without installing a separate task package.
+`pi-specs` (formerly `pi-spec-driven-dev`) should include a first-class task manager so spec-driven work can be tracked dynamically from intake through product spec, tech spec, implementation, validation, and user steering. Users and agents should see live task progress, manage dependencies, persist work inside each spec directory, and optionally coordinate subagent execution without installing a separate task package.
+
+> Historical note: this behavior was implemented by vendoring `@tintinweb/pi-tasks` under `src/tasks/`. As of `pi-specs@0.1.4`, the runtime was deleted and the same task tracking is provided by installing `@tintinweb/pi-tasks` alongside `pi-specs`. The behavior surface below describes the original intent and is preserved for historical context.
 
 ## Behavior
 
