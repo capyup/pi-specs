@@ -1,5 +1,5 @@
 ---
-name: spec-audit
+name: specs-audit
 description: Audit a repository's spec-driven development process or compare specs against implementation. Use when the user asks whether a project is spec-driven, wants a workflow summary, wants PRODUCT.md/TECH.md quality reviewed, or wants to find drift between specs, code, and tests.
 ---
 
@@ -9,7 +9,7 @@ Use this skill to understand or review a project's spec-driven development workf
 
 ## Target resolution
 
-When `/spec-audit` is invoked without arguments, do not ask immediately. First read `AGENTS.md` and `specs/SPECS.yaml`. If `SPECS.yaml` has exactly one focused spec entry, audit that focused spec. Ask the user only when no focused spec can be found or the focused state is ambiguous.
+When `/specs-audit` is invoked without arguments, do not ask immediately. First read `AGENTS.md` and `specs/SPECS.yaml`. If `SPECS.yaml` has exactly one focused spec entry, audit that focused spec. Ask the user only when no focused spec can be found or the focused state is ambiguous.
 
 ## Audit modes
 
@@ -31,7 +31,7 @@ Start broad, then narrow:
 - built-in task-manager state in YAML `specs/<id>/TASKS.yaml` or legacy task files under `.pi/tasks/`
 - representative code and tests for 2-3 specs
 
-If the extension tool is available, use `spec_list` to get a quick inventory, then inspect representative specs directly.
+If the extension tool is available, use `specs_list` to get a quick inventory, then inspect representative specs directly.
 
 ## Evidence budget and uncertainty
 

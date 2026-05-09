@@ -1,5 +1,5 @@
 ---
-name: spec-driven-dev
+name: specs
 description: Run a pragmatic spec-driven development workflow for substantial features, risky behavior changes, cross-cutting refactors, or agent-driven implementation. Use this whenever the user mentions PRODUCT.md, TECH.md, specs/, PRD, product spec, tech spec, ready-to-spec, spec-first implementation, or asks to plan a feature before coding.
 ---
 
@@ -64,7 +64,7 @@ specs/YYYY-MM-DD-kebab-feature/TASKS.yaml
 
 When no convention exists, propose the convention to the user before finalizing it: spec root, date-prefixed directory name, and `TASKS.yaml` format. If the user agrees or says to proceed, create/update `AGENTS.md` with one sentence for the spec root and one sentence for the `YYYY-MM-DD-kebab-feature` naming format.
 
-Use a ticket id when available (`APP-1234`, `GH408`, `JIRA-123`) only if the project already prefers ticket ids. Otherwise default to `YYYY-MM-DD-kebab-feature`. If the package extension is installed, you can call `spec_scaffold` to create the directory and starter files.
+Use a ticket id when available (`APP-1234`, `GH408`, `JIRA-123`) only if the project already prefers ticket ids. Otherwise default to `YYYY-MM-DD-kebab-feature`. If the package extension is installed, you can call `specs_scaffold` to create the directory and starter files.
 
 ## Workflow
 
@@ -92,7 +92,7 @@ For non-trivial workflows, use the built-in task manager when available:
 
 ### 2. Write the product spec first
 
-Use the `spec-product` skill. The product spec should define:
+Use the `specs-product` skill. The product spec should define:
 
 - what problem is being solved
 - desired user/caller experience
@@ -104,7 +104,7 @@ Keep implementation details out unless they are visible to the consumer of the s
 
 ### 3. Write the tech spec when warranted
 
-Use the `spec-tech` skill when implementation is non-trivial. Read the product spec and relevant source code before drafting. The tech spec should define:
+Use the `specs-tech` skill when implementation is non-trivial. Read the product spec and relevant source code before drafting. The tech spec should define:
 
 - current system context with file references
 - proposed module/API/state/data-flow changes
@@ -116,7 +116,7 @@ It is acceptable to prototype first if the architecture is too uncertain, then w
 
 ### 4. Implement approved specs
 
-Use the `spec-implement` skill once the specs are approved enough to build. During implementation:
+Use the `specs-implement` skill once the specs are approved enough to build. During implementation:
 
 - treat `PRODUCT.md` as the behavior source of truth
 - treat `TECH.md` as the implementation plan, not an immutable contract
@@ -143,17 +143,17 @@ If a behavior invariant is important enough to write, it should have a verificat
 
 If the extension from this package is installed, the user can invoke:
 
-- `/spec-workflow <feature>` - start the full workflow
-- `/spec-product <feature>` - draft or revise `PRODUCT.md`
-- `/spec-tech <path-or-feature>` - draft or revise `TECH.md`
-- `/spec-implement <spec-dir>` - implement approved specs
-- `/spec-audit [area]` - audit spec workflow or spec/code alignment
-- `/spec-help` - list commands
+- `/specs <feature>` - start the full workflow
+- `/specs-product <feature>` - draft or revise `PRODUCT.md`
+- `/specs-tech <path-or-feature>` - draft or revise `TECH.md`
+- `/specs-implement <spec-dir>` - implement approved specs
+- `/specs-audit [area]` - audit spec workflow or spec/code alignment
+- `/specs-help` - list commands
 
 The extension also exposes tools:
 
-- `spec_scaffold` - create `PRODUCT.md`, optional `TECH.md`, and `TASKS.yaml` under the documented spec root without overwriting files
-- `spec_list` - list current spec directories and whether each has product/tech/tasks files
+- `specs_scaffold` - create `PRODUCT.md`, optional `TECH.md`, and `TASKS.yaml` under the documented spec root without overwriting files
+- `specs_list` - list current spec directories and whether each has product/tech/tasks files
 
 ## Keep specs current
 

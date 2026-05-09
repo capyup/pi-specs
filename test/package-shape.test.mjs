@@ -40,7 +40,7 @@ test("extension registers spec commands and no longer registers tasks itself", a
   // Tasks are provided by @tintinweb/pi-tasks now, the extension must not register them.
   assert.doesNotMatch(extension, /registerTasks\(pi\)/);
   assert.doesNotMatch(extension, /from "\.\.\/src\/tasks/);
-  for (const command of ["spec-workflow", "spec-product", "spec-tech", "spec-implement", "spec-audit", "spec-help"]) {
+  for (const command of ["specs", "specs-product", "specs-tech", "specs-implement", "specs-audit", "specs-help"]) {
     assert.match(extension, new RegExp(command));
   }
   assert.match(extension, /specs\/SPECS\.yaml/);
@@ -54,7 +54,7 @@ test("extension registers spec commands and no longer registers tasks itself", a
 test("README documents commands, validation, and the pi-tasks dependency", async () => {
   const readme = await readText("README.md");
   for (const snippet of [
-    "/spec-workflow <feature, issue, or goal>",
+    "/specs <feature, issue, or goal>",
     "/tasks",
     "TaskCreate",
     "TaskExecute",
@@ -80,11 +80,11 @@ test("AGENTS and skills document convention discovery and steering alignment", a
   assert.match(agents, /PRODUCT\.md.*TECH\.md.*TASKS\.yaml/);
   assert.match(agents, /Before every commit, bump the package patch version by exactly one/);
 
-  for (const skill of ["spec-driven-dev", "spec-product", "spec-tech", "spec-implement", "spec-audit"]) {
+  for (const skill of ["specs", "specs-product", "specs-tech", "specs-implement", "specs-audit"]) {
     const text = await readText(`skills/${skill}/SKILL.md`);
     assert.match(text, /AGENTS\.md|TASKS\.yaml|PRODUCT\.md/s);
   }
-  for (const skill of ["spec-implement", "spec-audit"]) {
+  for (const skill of ["specs-implement", "specs-audit"]) {
     const text = await readText(`skills/${skill}/SKILL.md`);
     assert.match(text, /without arguments/);
     assert.match(text, /SPECS\.yaml/);

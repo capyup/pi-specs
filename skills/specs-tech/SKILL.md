@@ -1,5 +1,5 @@
 ---
-name: spec-tech
+name: specs-tech
 description: Write or revise an implementation-focused TECH.md spec grounded in the current codebase. Use when the user asks for a tech spec, implementation plan, architecture plan, TECH.md, codebase-grounded design, migration plan, or validation plan tied to a PRODUCT.md/product spec.
 ---
 

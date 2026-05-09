@@ -1,5 +1,5 @@
 ---
-name: spec-implement
+name: specs-implement
 description: Implement approved PRODUCT.md and TECH.md specs while keeping specs, code, tests, and review artifacts aligned. Use when the user asks to build from specs, implement a spec directory, continue after spec approval, or turn PRODUCT.md/TECH.md into code.
 ---
 
@@ -9,7 +9,7 @@ Build the feature described by checked-in specs and keep those specs accurate as
 
 ## Target resolution
 
-When `/spec-implement` is invoked without arguments, do not ask immediately. First read `AGENTS.md` and `specs/SPECS.yaml`. If `SPECS.yaml` has exactly one focused spec entry, use that spec directory as the implementation target. Ask the user only when no focused spec can be found or the focused state is ambiguous.
+When `/specs-implement` is invoked without arguments, do not ask immediately. First read `AGENTS.md` and `specs/SPECS.yaml`. If `SPECS.yaml` has exactly one focused spec entry, use that spec directory as the implementation target. Ask the user only when no focused spec can be found or the focused state is ambiguous.
 
 ## Prerequisites
 
@@ -20,7 +20,7 @@ Before coding, confirm:
 - specs are approved enough to start, or unresolved questions are explicitly accepted
 - repository development commands and test conventions are known
 
-If a required spec is missing, suggest using `spec-product` or `spec-tech` first.
+If a required spec is missing, suggest using `specs-product` or `specs-tech` first.
 
 ## Start by reading specs
 

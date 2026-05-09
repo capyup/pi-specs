@@ -10,31 +10,31 @@ This package is adapted from Warp's internal spec-driven workflow and generalize
 
 ### Skills
 
-- `spec-driven-dev` - end-to-end spec-first workflow: decide whether specs are warranted, write specs, implement, and verify.
-- `spec-product` - write or revise a behavior-first `PRODUCT.md` from the user/caller perspective.
-- `spec-tech` - write or revise a codebase-grounded `TECH.md` with implementation plan, risks, and validation.
-- `spec-implement` - implement approved specs while keeping specs, code, and tests synchronized.
-- `spec-audit` - audit a repository's spec workflow, spec quality, or spec/code/test drift.
+- `specs` - end-to-end spec-first workflow: decide whether specs are warranted, write specs, implement, and verify.
+- `specs-product` - write or revise a behavior-first `PRODUCT.md` from the user/caller perspective.
+- `specs-tech` - write or revise a codebase-grounded `TECH.md` with implementation plan, risks, and validation.
+- `specs-implement` - implement approved specs while keeping specs, code, and tests synchronized.
+- `specs-audit` - audit a repository's spec workflow, spec quality, or spec/code/test drift.
 
 ### Slash Commands
 
 The extension registers direct commands so you do not have to remember skill names:
 
 ```text
-/spec-workflow <feature, issue, or goal>
-/spec-product <ticket/feature and desired behavior>
-/spec-tech <spec path or feature>
-/spec-implement <spec directory or feature>
-/spec-audit [spec directory, issue, or area]
-/spec-help
+/specs <feature, issue, or goal>
+/specs-product <ticket/feature and desired behavior>
+/specs-tech <spec path or feature>
+/specs-implement <spec directory or feature>
+/specs-audit [spec directory, issue, or area]
+/specs-help
 ```
 
 ### Agent Tools
 
 The extension also registers helper tools that the model can call when useful:
 
-- `spec_scaffold` - creates `PRODUCT.md`, optional `TECH.md`, and `TASKS.yaml` under the documented spec root without overwriting existing files.
-- `spec_list` - lists spec directories under the documented spec root and reports whether each has product, tech, and task files.
+- `specs_scaffold` - creates `PRODUCT.md`, optional `TECH.md`, and `TASKS.yaml` under the documented spec root without overwriting existing files.
+- `specs_list` - lists spec directories under the documented spec root and reports whether each has product, tech, and task files.
 
 ### Task Manager (provided by `@tintinweb/pi-tasks`)
 
@@ -100,36 +100,36 @@ pi -e git:github.com/lulucatdev/pi-specs
 Start a full spec-driven workflow:
 
 ```text
-/spec-workflow APP-1234 add Mermaid diagram editing support in editable plans
+/specs APP-1234 add Mermaid diagram editing support in editable plans
 ```
 
 Draft only the product spec:
 
 ```text
-/spec-product GH408 make /open-file expand ~ paths the same way the file picker does
+/specs-product GH408 make /open-file expand ~ paths the same way the file picker does
 ```
 
 Write a technical plan from an existing product spec:
 
 ```text
-/spec-tech specs/GH408
+/specs-tech specs/GH408
 ```
 
 Implement approved specs:
 
 ```text
-/spec-implement specs/GH408
+/specs-implement specs/GH408
 ```
 
 Audit an existing project or feature:
 
 ```text
-/spec-audit specs/mermaid-markdown-in-plans
+/specs-audit specs/mermaid-markdown-in-plans
 ```
 
 ## Recommended Workflow
 
-1. **Start from an issue or feature idea.** Use `/spec-workflow` when the change is substantial, ambiguous, risky, or likely to involve multiple files.
+1. **Start from an issue or feature idea.** Use `/specs` when the change is substantial, ambiguous, risky, or likely to involve multiple files.
 2. **Discover conventions first.** Read `AGENTS.md`; if no spec root is documented, prefer existing `specs`, `docs/specs`, `.pi/specs`, then any nested `specs`, then create `./specs` and record the convention in `AGENTS.md`.
 3. **Confirm new conventions.** Before finalizing an inferred convention, tell the user the planned spec root, date-prefixed directory name, and YAML `TASKS.yaml` format, then ask whether to proceed or adjust.
 4. **Create live tasks for non-trivial work.** Use `TaskCreate` / `TaskUpdate` to track product spec, tech spec, implementation, validation, and follow-ups when the workflow has multiple meaningful steps.
@@ -139,7 +139,7 @@ Audit an existing project or feature:
 8. **Handle steering top-down.** If the user steers mid-workflow and behavior changes, update `PRODUCT.md`, then `TECH.md`, then `TASKS.yaml`, then implementation/tests as needed.
 9. **Keep specs and tasks current.** If implementation changes behavior, architecture, or sequencing, update the relevant spec and task state in the same PR.
 10. **Verify against behavior.** Tests and manual checks should map back to the behavior invariants in the product spec.
-11. **Audit before finishing.** Use `/spec-audit` when you want a final check for spec/code/test/task drift.
+11. **Audit before finishing.** Use `/specs-audit` when you want a final check for spec/code/test/task drift.
 
 ## Default Spec Layout
 
@@ -220,15 +220,15 @@ pi-specs/
 ├── test/
 │   └── package-shape.test.mjs
 └── skills/
-    ├── spec-audit/
+    ├── specs/
     │   └── SKILL.md
-    ├── spec-driven-dev/
+    ├── specs-audit/
     │   └── SKILL.md
-    ├── spec-implement/
+    ├── specs-implement/
     │   └── SKILL.md
-    ├── spec-product/
+    ├── specs-product/
     │   └── SKILL.md
-    └── spec-tech/
+    └── specs-tech/
         └── SKILL.md
 ```
 

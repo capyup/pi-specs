@@ -1,6 +1,6 @@
 {
   "name": "pi-specs",
-  "version": "0.1.5",
+  "version": "0.1.6",
   "description": "Pi package for spec-driven development workflows: product specs, tech specs, implementation, and spec audits. Task tracking is delegated to @tintinweb/pi-tasks. (Renamed from pi-spec-driven-dev.)",
   "type": "module",
   "keywords": [
@@ -14,7 +14,7 @@
   "scripts": {
     "test": "node --test --experimental-strip-types test/*.test.mjs",
     "test:unit": "node --test --experimental-strip-types test/*.test.mjs",
-    "test:smoke": "PI_OFFLINE=1 pi --no-extensions -e . --no-context-files -p \"/spec-help\""
+    "test:smoke": "PI_OFFLINE=1 pi --no-extensions -e . --no-context-files -p \"/specs-help\""
   },
   "peerDependencies": {
     "@mariozechner/pi-coding-agent": "*",

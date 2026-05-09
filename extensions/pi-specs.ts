@@ -5,34 +5,34 @@ import { Type } from "typebox";
 
 const COMMANDS = [
 	{
-		name: "spec-workflow",
-		skill: "spec-driven-dev",
+		name: "specs",
+		skill: "specs",
 		description: "Start a full spec-driven workflow for a feature or risky change",
-		usage: "/spec-workflow <feature, issue, or goal>",
+		usage: "/specs <feature, issue, or goal>",
 	},
 	{
-		name: "spec-product",
-		skill: "spec-product",
+		name: "specs-product",
+		skill: "specs-product",
 		description: "Write or revise a behavior-first PRODUCT.md spec",
-		usage: "/spec-product <ticket/feature and desired behavior>",
+		usage: "/specs-product <ticket/feature and desired behavior>",
 	},
 	{
-		name: "spec-tech",
-		skill: "spec-tech",
+		name: "specs-tech",
+		skill: "specs-tech",
 		description: "Write or revise an implementation-focused TECH.md spec",
-		usage: "/spec-tech <spec path or feature>",
+		usage: "/specs-tech <spec path or feature>",
 	},
 	{
-		name: "spec-implement",
-		skill: "spec-implement",
+		name: "specs-implement",
+		skill: "specs-implement",
 		description: "Implement approved PRODUCT.md and TECH.md specs while keeping them current",
-		usage: "/spec-implement <spec directory or feature>",
+		usage: "/specs-implement <spec directory or feature>",
 	},
 	{
-		name: "spec-audit",
-		skill: "spec-audit",
+		name: "specs-audit",
+		skill: "specs-audit",
 		description: "Audit a repository's spec-driven development workflow or spec/code alignment",
-		usage: "/spec-audit [spec directory, issue, or area]",
+		usage: "/specs-audit [spec directory, issue, or area]",
 	},
 ] as const;
 
@@ -234,7 +234,7 @@ tasks: []
 `;
 }
 
-export default function specDrivenDevExtension(pi: ExtensionAPI) {
+export default function piSpecsExtension(pi: ExtensionAPI) {
 	for (const command of COMMANDS) {
 		pi.registerCommand(command.name, {
 			description: command.description,
@@ -244,25 +244,25 @@ export default function specDrivenDevExtension(pi: ExtensionAPI) {
 		});
 	}
 
-	pi.registerCommand("spec-help", {
+	pi.registerCommand("specs-help", {
 		description: "Show spec-driven development commands from pi-specs",
 		handler: async (_args, ctx) => {
 			const lines = COMMANDS.map((command) => `${command.usage} - ${command.description}`);
 			lines.push("/tasks - Manage workflow tasks (provided by @tintinweb/pi-tasks)");
 			lines.push("Task tools (from @tintinweb/pi-tasks): TaskCreate, TaskList, TaskGet, TaskUpdate, TaskOutput, TaskStop, TaskExecute");
-			lines.push("/spec-help - Show this help");
+			lines.push("/specs-help - Show this help");
 			ctx.ui.notify(lines.join("\n"), "info");
 		},
 	});
 
 	pi.registerTool({
-		name: "spec_scaffold",
-		label: "Spec Scaffold",
+		name: "specs_scaffold",
+		label: "Specs Scaffold",
 		description: "Create a specs/<id>/PRODUCT.md, TASKS.yaml, and optional TECH.md scaffold in the current project without overwriting existing files.",
 		promptSnippet: "Create spec directory scaffolds for spec-driven development.",
 		promptGuidelines: [
-			"Use spec_scaffold when starting a new spec-driven feature and the user has provided a ticket id or short feature id.",
-			"Do not use spec_scaffold to overwrite existing PRODUCT.md, TECH.md, or TASKS.yaml; read existing specs first when they already exist.",
+			"Use specs_scaffold when starting a new spec-driven feature and the user has provided a ticket id or short feature id.",
+			"Do not use specs_scaffold to overwrite existing PRODUCT.md, TECH.md, or TASKS.yaml; read existing specs first when they already exist.",
 		],
 		parameters: Type.Object({
 			id: Type.String({ description: "Ticket id or short feature id, e.g. APP-1234 or markdown-tables" }),
@@ -322,8 +322,8 @@ export default function specDrivenDevExtension(pi: ExtensionAPI) {
 	});
 
 	pi.registerTool({
-		name: "spec_list",
-		label: "Spec List",
+		name: "specs_list",
+		label: "Specs List",
 		description: "List spec directories under the AGENTS.md-documented spec root and report which contain PRODUCT.md, TECH.md, and TASKS.yaml.",
 		promptSnippet: "List existing spec directories and whether PRODUCT.md / TECH.md / TASKS.yaml exists.",
 		parameters: Type.Object({}),
