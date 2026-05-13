@@ -81,17 +81,9 @@ test("spec without milestones renders only heading with zero time", () => {
   assert.match(lines[0], /0DAY 00:00:00/);
 });
 
-test("unfocused registry renders guidance tree", () => {
-  const lines = renderSpecWidgetLines(null, theme, 96, { specCount: 4 });
-
-  assert.equal(lines.length, 2);
-  assert.match(lines[0], /^◇ Specs unfocused/);
-  assert.match(lines[0], /4 specs/);
-  assert.match(lines[1], /^└─.*\/spec-status/);
-  assert.equal(specFooterStatus(null, { specCount: 4 }), "specs: unfocused [4]");
-});
-
-test("empty registry returns no widget or footer status", () => {
+test("unfocused or empty registry returns no widget or footer status", () => {
+  assert.deepEqual(renderSpecWidgetLines(null, theme, 96, { specCount: 4 }), []);
+  assert.equal(specFooterStatus(null, { specCount: 4 }), undefined);
   assert.deepEqual(renderSpecWidgetLines(null, theme, 96, { specCount: 0 }), []);
   assert.equal(specFooterStatus(null, { specCount: 0 }), undefined);
 });

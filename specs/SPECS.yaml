@@ -1,5 +1,5 @@
 version: 1
-focused: 2026-05-13-specs-footer-widget
+focused: null
 status_vocabulary:
   - draft
   - implementing
@@ -23,7 +23,7 @@ specs:
     path: specs/2026-05-13-specs-footer-widget
     title: Specs footer widget
     status: completed
-    focused: true
+    focused: false
     last_audit: null
     updated: 2026-05-13
   - id: 2026-05-13-superpowers-inspired-research-flow

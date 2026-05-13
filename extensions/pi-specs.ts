@@ -823,7 +823,20 @@ export default function piSpecsExtension(pi: ExtensionAPI) {
 			const lines = COMMANDS.map((command) => `${command.usage} - ${command.description}`);
 			lines.push("Tools: spec_scaffold, spec_research, spec_questionaire, spec_questionnaire, spec_focus, spec_unfocus, spec_status, spec_finish, spec_append_milestone, specs_settings_get, specs_settings_update");
 			lines.push("/specs-help - Show this help");
+			lines.push("/specs-clear - Clear focused spec and hide widget");
 			ctx.ui.notify(lines.join("\n"), "info");
+		},
+	});
+
+	pi.registerCommand("specs-clear", {
+		description: "Clear the focused spec and hide the specs widget",
+		handler: async (_args, ctx) => {
+			const { registry, registryPath } = await loadRegistry(ctx.cwd);
+			const previous = registry.focused;
+			setFocused(registry, null);
+			await saveRegistry(registryPath, registry);
+			await updateSpecUI(ctx);
+			ctx.ui.notify(previous ? `Cleared focused spec: ${previous}` : "No focused spec was set.", "info");
 		},
 	});
 

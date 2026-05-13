@@ -92,7 +92,7 @@ function displayIconAndColor(spec: SpecWidgetRecord): { icon: string; color: Spe
 
 export function specFooterStatus(spec: SpecWidgetRecord | null, options: { specCount?: number } = {}): string | undefined {
 	const specCount = options.specCount ?? (spec ? 1 : 0);
-	if (!spec) return specCount > 0 ? `specs: unfocused [${specCount}]` : undefined;
+	if (!spec) return undefined;
 	return `specs: ${spec.id} · ${spec.status}`;
 }
 
@@ -111,12 +111,7 @@ export function renderSpecWidgetLines(spec: SpecWidgetRecord | null, theme: Them
 	const safeWidth = Math.max(1, width);
 
 	if (!spec) {
-		if (specCount <= 0) return [];
-		const meta = specCount === 1 ? "1 spec" : `${specCount} specs`;
-		return [
-			heading(theme, safeWidth, `${theme.fg("warning", "◇")} ${theme.fg("warning", theme.bold("Specs"))} ${theme.fg("muted", "unfocused")}`, theme.fg("muted", meta)),
-			branchLine(theme, safeWidth, true, theme.fg("muted", "Run /spec-status or spec_focus to choose this session's spec")),
-		];
+		return [];
 	}
 
 	const { icon, color } = displayIconAndColor(spec);
