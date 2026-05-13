@@ -12,14 +12,16 @@ Use this skill to drive a feature from intent to implementation through checked-
 - Specs are working inputs for implementation and review, not ceremony.
 - `PRODUCT.md` owns observable behavior from the user/caller perspective.
 - `TECH.md` owns implementation shape, codebase context, risks, and validation.
+- `MILESTONES.md` owns free-form implementation history: milestones, setbacks, failed attempts, fixes, validation notes, and decisions.
 - Code, tests, and specs should describe the same feature by the time the PR ships.
+- Agent/session-local planning is enough for execution state; this package does not create durable progress files.
 - Skip specs for small local bug fixes, narrow refactors, and obvious one-file tweaks.
 
 ## Prompting posture
 
 - Prefer outcome-first guidance: define the artifact, success criteria, constraints, available evidence, and final answer shape; do not over-prescribe the agent's internal process.
 - Use absolute words like `always`, `never`, and `must` only for real invariants such as safety, file ownership, required outputs, or non-destructive behavior. Use decision rules for judgment calls.
-- For multi-step or tool-heavy work, begin with a short visible preamble that acknowledges the task and states the first step.
+- For multi-step or tool-heavy work, begin with a short visible preamble that acknowledges the request and states the first step.
 - Stop when the user's core request is satisfied with enough evidence, explicit open questions, and a clear next action. Do not keep expanding the workflow just to add polish.
 
 ## Decide whether specs are warranted
@@ -49,7 +51,7 @@ Before creating files, inspect the project for existing conventions:
 - then inspect `CONTRIBUTING.md`, `README.md`, `WARP.md`, `CLAUDE.md`, or equivalent agent docs
 - then check existing roots in this order: `specs`, `docs/specs`, `.pi/specs`
 - then search for another `specs` directory if the preferred roots do not exist
-- inspect examples of `PRODUCT.md`, `TECH.md`, `TASKS.yaml`, PRDs, design docs, or RFCs
+- inspect examples of `PRODUCT.md`, `TECH.md`, PRDs, design docs, or RFCs
 - inspect test and validation conventions
 
 Default convention when none exists:
@@ -57,18 +59,16 @@ Default convention when none exists:
 ```text
 specs/YYYY-MM-DD-kebab-feature/PRODUCT.md
 specs/YYYY-MM-DD-kebab-feature/TECH.md
-specs/YYYY-MM-DD-kebab-feature/TASKS.yaml
+specs/YYYY-MM-DD-kebab-feature/MILESTONES.md
 ```
 
-`TASKS.yaml` is the spec-scoped task database. Keep it as readable YAML in the same directory as the specs so product intent, technical plan, and live progress stay together.
+When no convention exists, propose the convention to the user before finalizing it: spec root, date-prefixed directory name, and free-form `MILESTONES.md` log. If the user agrees or says to proceed, create/update `AGENTS.md` with short sentences for the spec root, `YYYY-MM-DD-kebab-feature` naming format, and milestone log convention.
 
-When no convention exists, propose the convention to the user before finalizing it: spec root, date-prefixed directory name, and `TASKS.yaml` format. If the user agrees or says to proceed, create/update `AGENTS.md` with one sentence for the spec root and one sentence for the `YYYY-MM-DD-kebab-feature` naming format.
-
-Use a ticket id when available (`APP-1234`, `GH408`, `JIRA-123`) only if the project already prefers ticket ids. Otherwise default to `YYYY-MM-DD-kebab-feature`. If the package extension is installed, you can call `specs_scaffold` to create the directory and starter files.
+Use a ticket id when available (`APP-1234`, `GH408`, `JIRA-123`) only if the project already prefers ticket ids. Otherwise default to `YYYY-MM-DD-kebab-feature`. If the package extension is installed, call `spec_scaffold` to create the directory, starter files, registry entry, and default focus.
 
 ## Workflow
 
-### 1. Capture intent and task shape
+### 1. Capture intent and shape
 
 Clarify only what is needed to avoid guessing:
 
@@ -80,15 +80,6 @@ Clarify only what is needed to avoid guessing:
 - expected validation bar
 
 If the user already gave enough context, proceed instead of over-interviewing.
-
-For non-trivial workflows, use the built-in task manager when available:
-
-- create compact YAML tasks in the spec directory's `TASKS.yaml` for product spec, tech spec, implementation, validation, and follow-ups when there are three or more meaningful steps
-- pass `specDir` to task tools when more than one spec exists or the active spec is ambiguous
-- keep task entries compact; detailed rationale belongs in `PRODUCT.md` and `TECH.md`
-- mark a task `in_progress` before starting that phase and `completed` only when it is actually done
-- add dependencies when a task cannot begin until another task completes
-- skip task tracking for tiny one-step fixes or purely conversational answers
 
 ### 2. Write the product spec first
 
@@ -121,12 +112,12 @@ Use the `specs-implement` skill once the specs are approved enough to build. Dur
 - treat `PRODUCT.md` as the behavior source of truth
 - treat `TECH.md` as the implementation plan, not an immutable contract
 - update specs immediately when behavior or architecture changes
+- use `spec_append_milestone` when available to update `MILESTONES.md` after meaningful implementation milestones, setbacks, failed attempts, fixes, validation notes, and decisions
 - add tests and artifacts that verify the current specs
 
 For large work, consider optional helper docs in the same spec directory:
 
-- `PROJECT_LOG.md` for checkpoints, explored paths, and current state
-- `DECISIONS.md` for concrete product/technical decisions
+- `DECISIONS.md` for focused product/technical decisions that need to stand apart from the milestone log
 
 ### 5. Verify against the specs
 
@@ -152,12 +143,16 @@ If the extension from this package is installed, the user can invoke:
 
 The extension also exposes tools:
 
-- `specs_scaffold` - create `PRODUCT.md`, optional `TECH.md`, and `TASKS.yaml` under the documented spec root without overwriting files
-- `specs_list` - list current spec directories and whether each has product/tech/tasks files
+- `spec_scaffold` - create `PRODUCT.md`, `MILESTONES.md`, optional `TECH.md`, and a registry entry without overwriting files
+- `spec_focus` / `spec_unfocus` - set or clear the focused spec
+- `spec_status` - summarize lifecycle state and artifact readiness
+- `spec_finish` - run local completion checks and mark the spec completed when required artifacts exist
+- `spec_append_milestone` - append a milestone paragraph to the focused spec's `MILESTONES.md` with visible TUI tool-call context
+- `specs_settings_get` / `specs_settings_update` - read or update future audit provider/model defaults
 
 ## Keep specs current
 
-When the user steers the work mid-conversation, do not patch only the current file. First decide whether the steering changes observable behavior. If yes, update `PRODUCT.md` first, then update `TECH.md`, then update `TASKS.yaml`, then adjust implementation and tests as needed. If behavior does not change, update the lowest affected layer and explain why higher layers stay unchanged.
+When the user steers the work mid-conversation, do not patch only the current file. First decide whether the steering changes observable behavior. If yes, update `PRODUCT.md` first, then update `TECH.md`, then adjust implementation, tests, and `MILESTONES.md` as needed. If behavior does not change, update the lowest affected layer and explain why higher layers stay unchanged.
 
 Update `PRODUCT.md` when:
 
@@ -171,11 +166,12 @@ Update `TECH.md` when:
 - risks, dependencies, rollout, or migration assumptions change
 - the testing or validation plan changes
 
-Update `TASKS.yaml` when:
+Update `MILESTONES.md` with `spec_append_milestone` when the tool is available. The tool adds a `### YYYY-MM-DD HH:mm:ss - Milestone` heading automatically unless the content already starts with `###`. Use it when:
 
-- phase status changes
-- task dependencies change
-- user steering changes sequencing or introduces/removes work
-- task file drift is detected; rewrite the affected `TASKS.yaml` (manually, or via `@tintinweb/pi-tasks` tooling)
+- an implementation phase completes
+- an approach fails and the reason matters
+- a setback or blocker is resolved
+- validation results affect confidence or next steps
+- a decision changes the implementation path
 
-The checked-in specs and tasks should describe the feature that actually ships, not just the initial intent.
+The checked-in specs should describe the feature that actually ships, and the milestone log should explain how the implementation got there.

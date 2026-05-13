@@ -17,6 +17,7 @@ Before coding, confirm:
 
 - `PRODUCT.md` exists for user/caller behavior
 - `TECH.md` exists when the implementation is non-trivial
+- `MILESTONES.md` exists or can be created for free-form implementation history
 - specs are approved enough to start, or unresolved questions are explicitly accepted
 - repository development commands and test conventions are known
 
@@ -28,6 +29,7 @@ Treat:
 
 - `PRODUCT.md` as the source of truth for observable behavior
 - `TECH.md` as the source of truth for implementation shape, sequencing, risks, and validation
+- `MILESTONES.md` as the free-form record of meaningful implementation events
 
 Extract:
 
@@ -38,20 +40,18 @@ Extract:
 
 ## Inspect current code
 
-Before editing, read the relevant files named in `TECH.md` and nearby tests. Verify the tech spec still matches the current codebase. If it is stale, update it before or alongside implementation.
+Before editing, read the relevant files named in `TECH.md` and nearby tests. Read existing `MILESTONES.md` when present to understand prior attempts and decisions. Verify the tech spec still matches the current codebase. If it is stale, update it before or alongside implementation.
 
 ## Plan implementation steps
 
-Use the built-in task manager for non-trivial spec implementation when available. Create or update compact YAML tasks in the spec directory's `TASKS.yaml`; pass `specDir` when the active spec is ambiguous. Tasks should correspond to the approved spec phases, dependencies, code changes, tests, and follow-ups. Good steps are concrete:
+Plan in the active agent/session rather than creating durable progress files. Use `MILESTONES.md` only for durable narrative history after meaningful events. Good implementation steps are concrete:
 
 - update enum/display/parser in `path`
 - wire action through `path`
 - add regression test in `path`
 - run targeted command
 
-Avoid vague steps like "implement feature" or "add validation".
-
-Mark the current task `in_progress` before editing, and mark it `completed` only after the corresponding code/spec/test work is finished or the residual risk is explicitly recorded.
+Avoid vague steps like "implement feature" or "add validation". If needed, record durable reasoning in `MILESTONES.md`; use optional docs such as `DECISIONS.md` only when a focused decision log is useful.
 
 ## Implement against the specs
 
@@ -62,9 +62,10 @@ During implementation:
 - prefer existing patterns over novel abstractions
 - add feature flags for risky or staged rollout when the project uses them
 - update tests as behavior lands
+- use `spec_append_milestone` when available to update `MILESTONES.md` after meaningful phase changes, setbacks, failed attempts, fixes, validation notes, and decisions
 - update specs immediately when behavior or architecture changes
 
-Do not silently diverge from the product spec. If the user steers mid-workflow or a behavior invariant is impossible or undesirable after inspecting the code, update in order: `PRODUCT.md` for behavior, `TECH.md` for implementation shape, `TASKS.yaml` for sequencing/status, then code/tests.
+Do not silently diverge from the product spec. If the user steers mid-workflow or a behavior invariant is impossible or undesirable after inspecting the code, update in order: `PRODUCT.md` for behavior, `TECH.md` for implementation shape, then code/tests and `MILESTONES.md`.
 
 ## Update specs as needed
 
@@ -84,6 +85,14 @@ Update `TECH.md` when:
 
 Keep these updates in the same PR as the code when practical.
 
+Update `MILESTONES.md` with `spec_append_milestone {current_spec_name} {milestone_content}` when the tool is available. The tool adds a `### YYYY-MM-DD HH:mm:ss - Milestone` heading automatically unless the content already starts with `###`. Use it when:
+
+- an implementation phase reaches a useful checkpoint
+- an approach fails or is abandoned
+- a setback, blocker, or confusing bug is resolved
+- validation passes, fails, or changes direction
+- a decision affects future maintainers or agents
+
 ## Verify
 
 Prefer targeted verification first, then broader checks:
@@ -99,13 +108,14 @@ Run the most relevant validation available after changes: targeted tests for cha
 
 ## Stop conditions
 
-Stop when the current specs, code, and tests agree on the implemented behavior; relevant validation has either passed or been honestly reported as unavailable; and any remaining blockers or follow-ups are explicit. Do not broaden the task into unrelated refactors or speculative improvements.
+Stop when the current specs, code, and tests agree on the implemented behavior; relevant validation has either passed or been honestly reported as unavailable; and any remaining blockers or follow-ups are explicit. Do not broaden the request into unrelated refactors or speculative improvements.
 
 ## Final report
 
 When done, summarize:
 
 - specs read and updated
+- milestone log entries added
 - code paths changed
 - tests or manual verification run
 - behavior invariants covered

@@ -1,5 +1,5 @@
 import { access, appendFile, mkdir, readdir, readFile, writeFile } from "node:fs/promises";
-import { join, resolve } from "node:path";
+import { basename, join, relative, resolve } from "node:path";
 import type { ExtensionAPI, ExtensionCommandContext } from "@earendil-works/pi-coding-agent";
 import { Type } from "typebox";
 
@@ -36,6 +36,37 @@ const COMMANDS = [
 	},
 ] as const;
 
+const STATUS_VOCABULARY = ["draft", "ready_for_review", "implementing", "validating", "audit_running", "audit_failed", "completed", "archived"] as const;
+const COMMAND_REGISTRY = {
+	focus: "/spec-focus <spec-id-or-path>",
+	unfocus: "/spec-unfocus",
+	status: "/spec-status [spec-id-or-path]",
+	finish: "/spec-finish [spec-id-or-path]",
+	settings: "/specs-settings",
+} as const;
+
+type SpecStatus = (typeof STATUS_VOCABULARY)[number];
+type SpecEntry = {
+	id: string;
+	path: string;
+	title: string;
+	status: SpecStatus | string;
+	focused: boolean;
+	last_audit: string | null;
+	updated: string;
+};
+type SpecRegistry = {
+	version: number;
+	focused: string | null;
+	status_vocabulary: string[];
+	commands: typeof COMMAND_REGISTRY;
+	specs: SpecEntry[];
+};
+type SpecSettings = {
+	audit_provider?: string;
+	audit_model?: string;
+};
+
 function buildSkillPrompt(skill: string, args: string, usage: string): string {
 	const trimmed = args.trim();
 	const noArgsInstruction = [
@@ -46,7 +77,7 @@ function buildSkillPrompt(skill: string, args: string, usage: string): string {
 		"Ask the user only if no focused spec can be found or the target remains ambiguous after reading the registry.",
 	].join(" ");
 	return [
-		`Use the ${skill} skill for this task.`,
+		`Use the ${skill} skill for this request.`,
 		"Read that skill's SKILL.md before taking action if it is available.",
 		trimmed ? `User request: ${trimmed}` : noArgsInstruction,
 	].join("\n\n");
@@ -59,7 +90,7 @@ function sendSkillMessage(pi: ExtensionAPI, ctx: ExtensionCommandContext, skill:
 		return;
 	}
 	pi.sendUserMessage(prompt, { deliverAs: "followUp" });
-	ctx.ui.notify(`Queued ${skill} as a follow-up task.`, "info");
+	ctx.ui.notify(`Queued ${skill} as a follow-up request.`, "info");
 }
 
 function validateSpecId(id: string): string | undefined {
@@ -122,17 +153,19 @@ async function ensureAgentsSpecConvention(cwd: string, specRoot: string): Promis
 	const agentsPath = join(cwd, "AGENTS.md");
 	const relativeRoot = specRoot.startsWith(cwd) ? specRoot.slice(cwd.length + 1) || "specs" : specRoot;
 	const rootLine = `Spec directories live under \`${relativeRoot}\` unless a nested AGENTS.md documents a more specific convention.`;
-	const nameLine = "Spec directory names use `YYYY-MM-DD-kebab-feature`, for example `2026-05-01-builtin-task-workflow`.";
+	const nameLine = "Spec directory names use `YYYY-MM-DD-kebab-feature`, for example `2026-05-01-spec-lifecycle-audit`.";
+	const milestonesLine = "Spec directories include a free-form `MILESTONES.md` implementation log for milestones, setbacks, fixes, validation notes, and decisions.";
 	let current = "";
 	try {
 		current = await readFile(agentsPath, "utf-8");
 	} catch {
-		await writeFile(agentsPath, `# AGENTS.md\n\n${rootLine}\n${nameLine}\n`);
+		await writeFile(agentsPath, `# AGENTS.md\n\n${rootLine}\n${nameLine}\n${milestonesLine}\n`);
 		return agentsPath;
 	}
 	const additions = [];
 	if (!extractSpecRootFromAgents(current)) additions.push(rootLine);
 	if (!current.includes("YYYY-MM-DD-kebab-feature")) additions.push(nameLine);
+	if (!current.includes("MILESTONES.md")) additions.push(milestonesLine);
 	if (additions.length > 0) {
 		await appendFile(agentsPath, `\n${additions.join("\n")}\n`);
 		return agentsPath;
@@ -170,6 +203,169 @@ async function resolveSpecRoot(cwd: string): Promise<{ specRoot: string; agentsU
 	return { specRoot: fallback, agentsUpdated };
 }
 
+function yamlValue(value: string | null | undefined): string {
+	if (value === null || value === undefined || value === "") return "null";
+	return value;
+}
+
+function parseYamlScalar(value: string): string | null {
+	const trimmed = value.trim();
+	if (!trimmed || trimmed === "null" || trimmed === "~") return null;
+	return trimmed.replace(/^['\"]|['\"]$/g, "");
+}
+
+function readYamlField(block: string, field: string): string | undefined {
+	const match = block.match(new RegExp(`^\\s+${field}:\\s*(.+)$`, "m"));
+	const value = match ? parseYamlScalar(match[1]) : undefined;
+	return value ?? undefined;
+}
+
+function today(): string {
+	return new Date().toISOString().slice(0, 10);
+}
+
+function formatLocalTimestamp(date = new Date()): string {
+	const pad = (value: number) => String(value).padStart(2, "0");
+	return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`;
+}
+
+function formatMilestoneEntry(content: string): string {
+	const trimmed = content.trim();
+	if (trimmed.startsWith("### ")) return `\n${trimmed}\n`;
+	return `\n### ${formatLocalTimestamp()} - Milestone\n\n${trimmed}\n`;
+}
+
+function emptyRegistry(): SpecRegistry {
+	return {
+		version: 1,
+		focused: null,
+		status_vocabulary: [...STATUS_VOCABULARY],
+		commands: COMMAND_REGISTRY,
+		specs: [],
+	};
+}
+
+function parseRegistry(text: string): SpecRegistry {
+	const registry = emptyRegistry();
+	registry.version = Number.parseInt(text.match(/^version:\s*(\d+)/m)?.[1] ?? "1", 10);
+	registry.focused = parseYamlScalar(text.match(/^focused:\s*(.+)$/m)?.[1] ?? "");
+
+	const entryPattern = /^\s*-\s+id:\s*(.+)$/gm;
+	let match: RegExpExecArray | null;
+	while ((match = entryPattern.exec(text))) {
+		const id = parseYamlScalar(match[1]);
+		if (!id) continue;
+		const blockStart = match.index;
+		const nextEntry = text.slice(entryPattern.lastIndex).search(/^\s*-\s+id:/m);
+		const blockEnd = nextEntry === -1 ? text.length : entryPattern.lastIndex + nextEntry;
+		const block = text.slice(blockStart, blockEnd);
+		registry.specs.push({
+			id,
+			path: readYamlField(block, "path") ?? `specs/${id}`,
+			title: readYamlField(block, "title") ?? id,
+			status: readYamlField(block, "status") ?? "draft",
+			focused: (readYamlField(block, "focused") ?? "false") === "true",
+			last_audit: readYamlField(block, "last_audit") ?? null,
+			updated: readYamlField(block, "updated") ?? today(),
+		});
+	}
+	return normalizeRegistry(registry);
+}
+
+function normalizeRegistry(registry: SpecRegistry): SpecRegistry {
+	let focusedSeen = false;
+	for (const spec of registry.specs) {
+		if (registry.focused && spec.id === registry.focused) {
+			spec.focused = true;
+			focusedSeen = true;
+		} else {
+			spec.focused = false;
+		}
+	}
+	if (!focusedSeen) registry.focused = null;
+	return registry;
+}
+
+function renderRegistry(registry: SpecRegistry): string {
+	const normalized = normalizeRegistry(registry);
+	const lines = [
+		"version: 1",
+		`focused: ${yamlValue(normalized.focused)}`,
+		"status_vocabulary:",
+		...STATUS_VOCABULARY.map((status) => `  - ${status}`),
+		"commands:",
+		`  focus: ${COMMAND_REGISTRY.focus}`,
+		`  unfocus: ${COMMAND_REGISTRY.unfocus}`,
+		`  status: ${COMMAND_REGISTRY.status}`,
+		`  finish: ${COMMAND_REGISTRY.finish}`,
+		`  settings: ${COMMAND_REGISTRY.settings}`,
+		"specs:",
+	];
+	for (const spec of normalized.specs.sort((a, b) => a.id.localeCompare(b.id))) {
+		lines.push(
+			`  - id: ${spec.id}`,
+			`    path: ${spec.path}`,
+			`    title: ${spec.title}`,
+			`    status: ${spec.status}`,
+			`    focused: ${spec.focused ? "true" : "false"}`,
+			`    last_audit: ${yamlValue(spec.last_audit)}`,
+			`    updated: ${spec.updated}`,
+		);
+	}
+	return `${lines.join("\n")}\n`;
+}
+
+async function loadRegistry(cwd: string): Promise<{ registry: SpecRegistry; specRoot: string; registryPath: string; created: boolean }> {
+	const { specRoot } = await resolveSpecRoot(cwd);
+	await mkdir(specRoot, { recursive: true });
+	const registryPath = join(specRoot, "SPECS.yaml");
+	try {
+		return { registry: parseRegistry(await readFile(registryPath, "utf-8")), specRoot, registryPath, created: false };
+	} catch {
+		const registry = emptyRegistry();
+		await writeFile(registryPath, renderRegistry(registry));
+		return { registry, specRoot, registryPath, created: true };
+	}
+}
+
+async function saveRegistry(registryPath: string, registry: SpecRegistry) {
+	await writeFile(registryPath, renderRegistry(registry));
+}
+
+function specPathFromRoot(cwd: string, specDir: string): string {
+	return relative(resolve(cwd), resolve(specDir)) || basename(specDir);
+}
+
+function findSpec(registry: SpecRegistry, target: string | undefined | null): SpecEntry | undefined {
+	const trimmed = target?.trim();
+	if (!trimmed) return registry.focused ? registry.specs.find((spec) => spec.id === registry.focused) : undefined;
+	return registry.specs.find((spec) => spec.id === trimmed || spec.path === trimmed || basename(spec.path) === trimmed || spec.title === trimmed);
+}
+
+async function resolveSpecTarget(cwd: string, target?: string): Promise<{ registry: SpecRegistry; specRoot: string; registryPath: string; spec: SpecEntry }> {
+	const loaded = await loadRegistry(cwd);
+	const spec = findSpec(loaded.registry, target);
+	if (!spec) {
+		throw new Error(target ? `Spec not found: ${target}` : "No focused spec in specs/SPECS.yaml.");
+	}
+	return { ...loaded, spec };
+}
+
+function upsertSpec(registry: SpecRegistry, entry: SpecEntry): SpecEntry {
+	const existing = registry.specs.find((spec) => spec.id === entry.id);
+	if (existing) {
+		Object.assign(existing, entry, { focused: existing.focused });
+		return existing;
+	}
+	registry.specs.push(entry);
+	return entry;
+}
+
+function setFocused(registry: SpecRegistry, id: string | null) {
+	registry.focused = id;
+	for (const spec of registry.specs) spec.focused = Boolean(id && spec.id === id);
+}
+
 function productTemplate(id: string, title: string): string {
 	return `# Product Spec: ${title || id}
 
@@ -192,6 +388,14 @@ Describe the desired outcome in 1-3 sentences. State who benefits and what chang
 ## Open questions
 
 - ...
+`;
+}
+
+function milestonesTemplate(id: string, title: string): string {
+	return `# Milestones: ${title || id}
+
+Free-form implementation log. Record meaningful phase changes, successful milestones, failed attempts, setbacks, fixes, validation notes, and decisions. Use third-level headings with timestamps down to seconds, for example \`### 2026-05-13 14:16:36 - Short milestone title\`. No strict schema is required.
+
 `;
 }
 
@@ -227,11 +431,53 @@ Map important PRODUCT.md Behavior items to concrete verification:
 `;
 }
 
-function tasksTemplate(): string {
-	return `version: 1
-next_id: 1
-tasks: []
-`;
+async function ensureSpecFile(path: string, content: string, created: string[], skipped: string[]) {
+	try {
+		await writeFile(path, content, { flag: "wx" });
+		created.push(path);
+	} catch (err) {
+		if ((err as NodeJS.ErrnoException).code === "EEXIST") {
+			skipped.push(path);
+			return;
+		}
+		throw err;
+	}
+}
+
+function matchesFocusedSpecName(input: string, focused: SpecEntry): boolean {
+	const normalized = input.trim();
+	return normalized === focused.id || normalized === focused.path || normalized === basename(focused.path) || normalized === focused.title;
+}
+
+async function artifactState(specDir: string) {
+	const product = await exists(join(specDir, "PRODUCT.md"));
+	const tech = await exists(join(specDir, "TECH.md"));
+	const milestones = await exists(join(specDir, "MILESTONES.md"));
+	let latestAudit: string | null = null;
+	try {
+		const audits = (await readdir(join(specDir, "audits"))).filter((entry) => entry.endsWith(".md")).sort();
+		latestAudit = audits.at(-1) ?? null;
+	} catch {
+		latestAudit = null;
+	}
+	return { product, tech, milestones, latestAudit };
+}
+
+async function readSettings(specRoot: string): Promise<SpecSettings> {
+	try {
+		const text = await readFile(join(specRoot, "SPECS.settings.yaml"), "utf-8");
+		return {
+			audit_provider: parseYamlScalar(text.match(/^audit_provider:\s*(.*)$/m)?.[1] ?? "") ?? undefined,
+			audit_model: parseYamlScalar(text.match(/^audit_model:\s*(.*)$/m)?.[1] ?? "") ?? undefined,
+		};
+	} catch {
+		return {};
+	}
+}
+
+async function writeSettings(specRoot: string, settings: SpecSettings) {
+	await mkdir(specRoot, { recursive: true });
+	await writeFile(join(specRoot, "SPECS.settings.yaml"), `audit_provider: ${yamlValue(settings.audit_provider)}\naudit_model: ${yamlValue(settings.audit_model)}\n`);
 }
 
 export default function piSpecsExtension(pi: ExtensionAPI) {
@@ -248,117 +494,223 @@ export default function piSpecsExtension(pi: ExtensionAPI) {
 		description: "Show spec-driven development commands from pi-specs",
 		handler: async (_args, ctx) => {
 			const lines = COMMANDS.map((command) => `${command.usage} - ${command.description}`);
-			lines.push("/tasks - Manage workflow tasks (provided by @tintinweb/pi-tasks)");
-			lines.push("Task tools (from @tintinweb/pi-tasks): TaskCreate, TaskList, TaskGet, TaskUpdate, TaskOutput, TaskStop, TaskExecute");
+			lines.push("Tools: spec_scaffold, spec_focus, spec_unfocus, spec_status, spec_finish, spec_append_milestone, specs_settings_get, specs_settings_update");
 			lines.push("/specs-help - Show this help");
 			ctx.ui.notify(lines.join("\n"), "info");
 		},
 	});
 
 	pi.registerTool({
-		name: "specs_scaffold",
-		label: "Specs Scaffold",
-		description: "Create a specs/<id>/PRODUCT.md, TASKS.yaml, and optional TECH.md scaffold in the current project without overwriting existing files.",
-		promptSnippet: "Create spec directory scaffolds for spec-driven development.",
+		name: "spec_scaffold",
+		label: "Spec Scaffold",
+		description: "Create PRODUCT.md, MILESTONES.md, optional TECH.md, and a SPECS.yaml registry entry.",
+		promptSnippet: "Scaffold a spec directory and register it in SPECS.yaml.",
 		promptGuidelines: [
-			"Use specs_scaffold when starting a new spec-driven feature and the user has provided a ticket id or short feature id.",
-			"Do not use specs_scaffold to overwrite existing PRODUCT.md, TECH.md, or TASKS.yaml; read existing specs first when they already exist.",
+			"Use spec_scaffold when starting a new spec-driven feature and the user has provided a ticket id or short feature id.",
+			"Do not overwrite existing PRODUCT.md, TECH.md, or MILESTONES.md; read existing specs first when they already exist.",
 		],
 		parameters: Type.Object({
 			id: Type.String({ description: "Ticket id or short feature id, e.g. APP-1234 or markdown-tables" }),
 			title: Type.Optional(Type.String({ description: "Human-readable spec title" })),
 			includeTech: Type.Optional(Type.Boolean({ description: "Whether to create TECH.md as well as PRODUCT.md" })),
+			focus: Type.Optional(Type.Boolean({ description: "Whether to make the new spec focused. Defaults to true." })),
 		}),
 		async execute(_toolCallId, params, _signal, _onUpdate, ctx) {
 			const error = validateSpecId(params.id);
-			if (error) {
-				return { content: [{ type: "text", text: `Invalid spec id: ${error}` }], isError: true };
-			}
+			if (error) return { content: [{ type: "text", text: `Invalid spec id: ${error}` }], isError: true };
 
+			const cwd = resolve(ctx.cwd);
 			const resolved = await resolveSpecRoot(ctx.cwd);
 			const specId = defaultSpecId(params.id.trim());
-			const specRoot = resolve(resolved.specRoot, specId);
-			const cwd = resolve(ctx.cwd);
-			if (!specRoot.startsWith(cwd)) {
-				return { content: [{ type: "text", text: "Refusing to create files outside the current project." }], isError: true };
-			}
+			const specDir = resolve(resolved.specRoot, specId);
+			if (!specDir.startsWith(cwd)) return { content: [{ type: "text", text: "Refusing to create files outside the current project." }], isError: true };
 
-			await mkdir(specRoot, { recursive: true });
+			await mkdir(specDir, { recursive: true });
 			const title = params.title?.trim() || specId;
+			const relativeSpecDir = specPathFromRoot(cwd, specDir);
 			const created: string[] = [];
 			const skipped: string[] = [];
+			await ensureSpecFile(join(specDir, "PRODUCT.md"), productTemplate(specId, title), created, skipped);
+			await ensureSpecFile(join(specDir, "MILESTONES.md"), milestonesTemplate(specId, title), created, skipped);
+			if (params.includeTech ?? true) await ensureSpecFile(join(specDir, "TECH.md"), techTemplate(specId, title, `${relativeSpecDir}/PRODUCT.md`), created, skipped);
 
-			async function createOnce(filename: string, content: string) {
-				const filePath = join(specRoot, filename);
-				try {
-					await writeFile(filePath, content, { flag: "wx" });
-					created.push(filePath);
-				} catch (err) {
-					if ((err as NodeJS.ErrnoException).code === "EEXIST") {
-						skipped.push(filePath);
-						return;
-					}
-					throw err;
-				}
+			const { registry, registryPath } = await loadRegistry(ctx.cwd);
+			const spec = upsertSpec(registry, { id: specId, path: relativeSpecDir, title, status: "draft", focused: false, last_audit: null, updated: today() });
+			if (params.focus ?? true) setFocused(registry, spec.id);
+			await saveRegistry(registryPath, registry);
+
+			const text = [
+				`Spec scaffolded: ${specId}`,
+				`Path: ${relativeSpecDir}`,
+				`Focus: ${registry.focused === specId ? "yes" : "no"}`,
+				created.length ? `Created:\n${created.map((path) => `- ${relative(cwd, path)}`).join("\n")}` : "Created: none",
+				skipped.length ? `Skipped existing:\n${skipped.map((path) => `- ${relative(cwd, path)}`).join("\n")}` : "Skipped existing: none",
+			].join("\n");
+			return { content: [{ type: "text", text }], details: { spec: specId, path: relativeSpecDir, created, skipped } };
+		},
+	});
+
+	pi.registerTool({
+		name: "spec_focus",
+		label: "Spec Focus",
+		description: "Set exactly one focused spec in specs/SPECS.yaml.",
+		promptSnippet: "Focus a spec for no-argument spec commands and milestone updates.",
+		parameters: Type.Object({ spec: Type.String({ description: "Spec id, path, basename, or title to focus." }) }),
+		async execute(_toolCallId, params, _signal, _onUpdate, ctx) {
+			const { registry, registryPath } = await loadRegistry(ctx.cwd);
+			const spec = findSpec(registry, params.spec);
+			if (!spec) return { content: [{ type: "text", text: `Spec not found: ${params.spec}` }], isError: true };
+			setFocused(registry, spec.id);
+			spec.updated = today();
+			await saveRegistry(registryPath, registry);
+			return { content: [{ type: "text", text: [`Focused spec: ${spec.id}`, `Title: ${spec.title}`, `Path: ${spec.path}`].join("\n") }], details: { spec: spec.id } };
+		},
+	});
+
+	pi.registerTool({
+		name: "spec_unfocus",
+		label: "Spec Unfocus",
+		description: "Clear the focused spec in specs/SPECS.yaml.",
+		promptSnippet: "Clear spec focus.",
+		parameters: Type.Object({}),
+		async execute(_toolCallId, _params, _signal, _onUpdate, ctx) {
+			const { registry, registryPath } = await loadRegistry(ctx.cwd);
+			const previous = registry.focused;
+			setFocused(registry, null);
+			await saveRegistry(registryPath, registry);
+			return { content: [{ type: "text", text: previous ? `Cleared focused spec: ${previous}` : "No focused spec was set." }], details: { previous } };
+		},
+	});
+
+	pi.registerTool({
+		name: "spec_status",
+		label: "Spec Status",
+		description: "Summarize lifecycle state and key artifacts for a spec.",
+		promptSnippet: "Show spec lifecycle status and artifact readiness.",
+		parameters: Type.Object({ spec: Type.Optional(Type.String({ description: "Spec id, path, basename, or title. Defaults to focused spec." })) }),
+		async execute(_toolCallId, params, _signal, _onUpdate, ctx) {
+			const { spec } = await resolveSpecTarget(ctx.cwd, params.spec);
+			const state = await artifactState(resolve(ctx.cwd, spec.path));
+			const lines = [
+				`Spec: ${spec.id}`,
+				`Title: ${spec.title}`,
+				`Status: ${spec.status}${spec.focused ? " (focused)" : ""}`,
+				`Path: ${spec.path}`,
+				`PRODUCT.md: ${state.product ? "yes" : "missing"}`,
+				`TECH.md: ${state.tech ? "yes" : "missing"}`,
+				`MILESTONES.md: ${state.milestones ? "yes" : "missing"}`,
+				`Latest audit: ${spec.last_audit ?? state.latestAudit ?? "none"}`,
+				`Updated: ${spec.updated}`,
+			];
+			return { content: [{ type: "text", text: lines.join("\n") }], details: { spec: spec.id, state } };
+		},
+	});
+
+	pi.registerTool({
+		name: "spec_finish",
+		label: "Spec Finish",
+		description: "Run local completion checks and mark a spec completed when required artifacts exist. Audit is intentionally separate.",
+		promptSnippet: "Finish a spec after implementation and validation evidence are in place.",
+		parameters: Type.Object({ spec: Type.Optional(Type.String({ description: "Spec id, path, basename, or title. Defaults to focused spec." })) }),
+		async execute(_toolCallId, params, _signal, _onUpdate, ctx) {
+			const { registry, registryPath, spec } = await resolveSpecTarget(ctx.cwd, params.spec);
+			const state = await artifactState(resolve(ctx.cwd, spec.path));
+			const missing = [];
+			if (!state.product) missing.push("PRODUCT.md");
+			if (!state.milestones) missing.push("MILESTONES.md");
+			if (missing.length > 0) {
+				return { content: [{ type: "text", text: [`Spec cannot finish: ${spec.id}`, `Missing: ${missing.join(", ")}`].join("\n") }], isError: true };
 			}
-
-			const relativeSpecDir = specRoot.startsWith(cwd) ? specRoot.slice(cwd.length + 1) : specRoot;
-			await createOnce("PRODUCT.md", productTemplate(specId, title));
-			if (params.includeTech ?? true) {
-				await createOnce("TECH.md", techTemplate(specId, title, `${relativeSpecDir}/PRODUCT.md`));
-			}
-			await createOnce("TASKS.yaml", tasksTemplate());
-
+			spec.status = "completed";
+			spec.updated = today();
+			await saveRegistry(registryPath, registry);
+			const warnings = [!state.tech ? "TECH.md is missing; accepted only if implementation was trivial." : undefined, "Spec audit was not run; use the future spec_audit flow when available."].filter(Boolean);
 			return {
-				content: [
-					{
-						type: "text",
-						text: [`Spec scaffold: ${relativeSpecDir}`, resolved.agentsUpdated ? `Updated AGENTS.md: ${resolved.agentsUpdated}` : "AGENTS.md: existing convention used", created.length ? `Created:\n${created.join("\n")}` : "Created: none", skipped.length ? `Skipped existing:\n${skipped.join("\n")}` : "Skipped existing: none"].join("\n\n"),
-					},
-				],
-				details: { specRoot, created, skipped },
+				content: [{ type: "text", text: [`Spec completed: ${spec.id}`, `Path: ${spec.path}`, warnings.length ? `Notes:\n${warnings.map((warning) => `- ${warning}`).join("\n")}` : "Notes: none"].join("\n") }],
+				details: { spec: spec.id, warnings },
 			};
+		},
+	});
+
+	pi.registerTool({
+		name: "spec_append_milestone",
+		label: "Spec Append Milestone",
+		description: "Append a free-form milestone paragraph to the focused spec's MILESTONES.md file with a timestamp heading down to seconds.",
+		promptSnippet: "Append an implementation milestone to the currently focused spec.",
+		promptGuidelines: [
+			"Use spec_append_milestone after meaningful implementation events, including phase completions, failed attempts, setbacks, fixes, validation notes, and decisions.",
+			"Pass the focused spec id or name as current_spec_name so the TUI clearly shows which spec is being updated.",
+			"Keep milestone_content as a concise paragraph unless more detail is useful; the tool adds a ### YYYY-MM-DD HH:mm:ss heading automatically unless one is already present.",
+		],
+		parameters: Type.Object({
+			current_spec_name: Type.String({ description: "The current focused spec id, path, basename, or title shown in the tool call." }),
+			milestone_content: Type.String({ description: "Free-form milestone paragraph to append to MILESTONES.md." }),
+		}),
+		async execute(_toolCallId, params, _signal, _onUpdate, ctx) {
+			const { spec } = await resolveSpecTarget(ctx.cwd, undefined);
+			if (!matchesFocusedSpecName(params.current_spec_name, spec)) {
+				return { content: [{ type: "text", text: `Focused spec is ${spec.id}; got current_spec_name=${params.current_spec_name}.` }], isError: true };
+			}
+			const content = params.milestone_content.trim();
+			if (!content) return { content: [{ type: "text", text: "milestone_content is required." }], isError: true };
+			const cwd = resolve(ctx.cwd);
+			const specDir = resolve(cwd, spec.path);
+			if (!specDir.startsWith(cwd)) return { content: [{ type: "text", text: "Refusing to append milestones outside the current project." }], isError: true };
+			await mkdir(specDir, { recursive: true });
+			const milestonesPath = join(specDir, "MILESTONES.md");
+			if (!(await exists(milestonesPath))) await writeFile(milestonesPath, milestonesTemplate(spec.id, spec.title));
+			await appendFile(milestonesPath, formatMilestoneEntry(content));
+			return { content: [{ type: "text", text: [`Milestone appended: ${spec.id}`, `File: ${relative(cwd, milestonesPath)}`].join("\n") }], details: { spec: spec.id, path: milestonesPath } };
+		},
+	});
+
+	pi.registerTool({
+		name: "specs_settings_get",
+		label: "Specs Settings Get",
+		description: "Read spec-root settings for future audit provider/model defaults.",
+		promptSnippet: "Read specs settings.",
+		parameters: Type.Object({}),
+		async execute(_toolCallId, _params, _signal, _onUpdate, ctx) {
+			const { specRoot } = await resolveSpecRoot(ctx.cwd);
+			const settings = await readSettings(specRoot);
+			return { content: [{ type: "text", text: [`Specs settings: ${relative(resolve(ctx.cwd), join(specRoot, "SPECS.settings.yaml"))}`, `audit_provider: ${settings.audit_provider ?? "current-session fallback"}`, `audit_model: ${settings.audit_model ?? "current-session fallback"}`].join("\n") }], details: settings };
+		},
+	});
+
+	pi.registerTool({
+		name: "specs_settings_update",
+		label: "Specs Settings Update",
+		description: "Update spec-root settings for future audit provider/model defaults.",
+		promptSnippet: "Update specs settings.",
+		parameters: Type.Object({
+			audit_provider: Type.Optional(Type.String({ description: "Audit provider. Empty string clears to current-session fallback." })),
+			audit_model: Type.Optional(Type.String({ description: "Audit model. Empty string clears to current-session fallback." })),
+		}),
+		async execute(_toolCallId, params, _signal, _onUpdate, ctx) {
+			const { specRoot } = await resolveSpecRoot(ctx.cwd);
+			const settings = await readSettings(specRoot);
+			if (params.audit_provider !== undefined) settings.audit_provider = params.audit_provider.trim() || undefined;
+			if (params.audit_model !== undefined) settings.audit_model = params.audit_model.trim() || undefined;
+			await writeSettings(specRoot, settings);
+			return { content: [{ type: "text", text: [`Specs settings updated`, `audit_provider: ${settings.audit_provider ?? "current-session fallback"}`, `audit_model: ${settings.audit_model ?? "current-session fallback"}`].join("\n") }], details: settings };
 		},
 	});
 
 	pi.registerTool({
 		name: "specs_list",
 		label: "Specs List",
-		description: "List spec directories under the AGENTS.md-documented spec root and report which contain PRODUCT.md, TECH.md, and TASKS.yaml.",
-		promptSnippet: "List existing spec directories and whether PRODUCT.md / TECH.md / TASKS.yaml exists.",
+		description: "List spec directories under the AGENTS.md-documented spec root and report which contain PRODUCT.md, TECH.md, and MILESTONES.md.",
+		promptSnippet: "List existing spec directories and whether PRODUCT.md / TECH.md / MILESTONES.md exists.",
 		parameters: Type.Object({}),
 		async execute(_toolCallId, _params, _signal, _onUpdate, ctx) {
-			const resolved = await resolveSpecRoot(ctx.cwd);
-			const specsDir = resolved.specRoot;
-			let entries: string[];
-			try {
-				entries = await readdir(specsDir);
-			} catch (err) {
-				if ((err as NodeJS.ErrnoException).code === "ENOENT") {
-					return { content: [{ type: "text", text: "No specs/ directory found in the current project." }], details: { specs: [] } };
-				}
-				throw err;
-			}
-
+			const { registry, specRoot } = await loadRegistry(ctx.cwd);
 			const rows = [];
-			for (const entry of entries.sort()) {
-				const dir = join(specsDir, entry);
-				let children: string[];
-				try {
-					children = await readdir(dir);
-				} catch {
-					continue;
-				}
-				const product = children.includes("PRODUCT.md") || children.includes("product.md");
-				const tech = children.includes("TECH.md") || children.includes("tech.md");
-				const tasks = children.includes("TASKS.yaml") || children.includes("TASKS.yml") || children.includes("tasks.yaml") || children.includes("tasks.yml");
-				rows.push({ id: entry, product, tech, tasks });
+			for (const spec of registry.specs) {
+				const state = await artifactState(resolve(ctx.cwd, spec.path));
+				rows.push(`${spec.focused ? "*" : " "} ${spec.id}: status=${spec.status}, product=${state.product ? "yes" : "no"}, tech=${state.tech ? "yes" : "no"}, milestones=${state.milestones ? "yes" : "no"}`);
 			}
-
-			const text = rows.length
-				? rows.map((row) => `${row.id}: product=${row.product ? "yes" : "no"}, tech=${row.tech ? "yes" : "no"}, tasks=${row.tasks ? "yes" : "no"}`).join("\n")
-				: `${specsDir} exists but has no spec directories.`;
-			return { content: [{ type: "text", text }], details: { specs: rows } };
+			const text = rows.length ? rows.join("\n") : `${specRoot} exists but has no registered specs.`;
+			return { content: [{ type: "text", text }], details: { specs: registry.specs } };
 		},
 	});
 }

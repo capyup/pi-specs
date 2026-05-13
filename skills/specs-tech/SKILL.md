@@ -9,10 +9,10 @@ Translate product intent into an implementation plan that fits the existing code
 
 ## Preconditions
 
-Prefer to have a sibling `PRODUCT.md` first. For existing work, also look for sibling `TASKS.yaml` so implementation planning can preserve current progress. If no product spec exists, either:
+Prefer to have a sibling `PRODUCT.md` first. If no product spec exists, either:
 
 - ask whether to draft a product spec first, or
-- proceed only when the task is purely technical and behavior is already settled.
+- proceed only when the work is purely technical and behavior is already settled.
 
 Do not guess about architecture when the code can be inspected directly.
 
@@ -52,9 +52,10 @@ Match the product spec directory. Default:
 
 ```text
 specs/YYYY-MM-DD-kebab-feature/TECH.md
+specs/YYYY-MM-DD-kebab-feature/MILESTONES.md
 ```
 
-If the feature is large, additional focused tech docs can live alongside it, for example `TECH-protocol.md`, `TECH-client-wiring.md`, or checklists. Keep the top-level `TECH.md` as the map.
+If the feature is large, additional focused tech docs can live alongside it, for example `TECH-protocol.md`, `TECH-client-wiring.md`, or checklists. Keep the top-level `TECH.md` as the map. Keep implementation history in `MILESTONES.md` rather than turning `TECH.md` into a diary.
 
 ## Required structure
 
@@ -110,7 +111,7 @@ Be concrete about:
 
 Prefer repo-native patterns over generic architecture advice.
 
-For work that will be implemented by an agent or split across phases, include a compact task breakdown that can be translated directly into sibling `TASKS.yaml` entries. Name dependencies explicitly, for example `implementation depends on approved TECH.md` or `validation depends on code changes`.
+For work that will be implemented by an agent or split across phases, include a compact implementation sequence with dependencies. Name dependencies explicitly, for example `implementation depends on approved TECH.md` or `validation depends on code changes`.
 
 ## Testing and validation section
 
@@ -142,4 +143,4 @@ If the user steers mid-workflow and behavior changed, make sure `PRODUCT.md` is 
 - rollout or feature flag strategy changes
 - the test plan changes
 
-The tech spec should describe the implementation that ships.
+The tech spec should describe the implementation that ships. During implementation, record meaningful milestones, failed approaches, setbacks, fixes, validation notes, and decisions in sibling `MILESTONES.md`.

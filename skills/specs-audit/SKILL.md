@@ -28,10 +28,9 @@ Start broad, then narrow:
 - `.agents/skills/`, `.pi/skills/`, `.pi/prompts/`, package resources
 - `specs/`, `docs/specs/`, `rfcs/`, `docs/adr/`, or equivalent
 - PR templates and CI/test docs
-- built-in task-manager state in YAML `specs/<id>/TASKS.yaml` or legacy task files under `.pi/tasks/`
-- representative code and tests for 2-3 specs
+- representative `MILESTONES.md` logs, code, and tests for 2-3 specs
 
-If the extension tool is available, use `specs_list` to get a quick inventory, then inspect representative specs directly.
+If extension tools are available, use `spec_status` for the focused target or `specs_list` for a quick inventory, then inspect representative specs directly.
 
 ## Evidence budget and uncertainty
 
@@ -92,13 +91,20 @@ For `TECH.md`, check:
 - risks and compatibility are addressed
 - deferred follow-ups are explicit
 
-## Spec/code/task drift checklist
+For `MILESTONES.md`, check:
+
+- meaningful implementation phases are recorded
+- setbacks, failed approaches, and fixes are captured when they happened
+- validation notes and important decisions are understandable
+- the file remains a free-form log, not a rigid progress database
+
+## Spec/code drift checklist
 
 For a target spec directory:
 
 1. Read `PRODUCT.md` and list core behavior invariants.
-2. Read `TECH.md` and list expected code paths and validation.
-3. Inspect `@tintinweb/pi-tasks` state if installed and note stale, malformed, blocked, or completed tasks that disagree with the specs. Recommend rewriting `TASKS.yaml` (manually or with `pi-tasks` tooling) when files are not normalized.
+2. Read `TECH.md` and list expected code paths and validation when it exists.
+3. Read `MILESTONES.md` when present to understand implementation history, setbacks, fixes, and validation notes.
 4. Inspect current code and tests.
 5. Mark each invariant as:
    - `implemented and tested`
@@ -106,7 +112,7 @@ For a target spec directory:
    - `partially implemented`
    - `not found`
    - `spec appears stale`
-5. Recommend concrete fixes: update code, add tests, or update specs.
+6. Recommend concrete fixes: update code, add tests, update specs, or add missing milestone context.
 
 ## Output discipline
 

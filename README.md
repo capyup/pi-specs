@@ -2,20 +2,11 @@
 
 > Moved to `@capyup` and published to npm in `0.1.7`. Old `git:github.com/lulucatdev/pi-spec-driven-dev` and `git:github.com/lulucatdev/pi-specs` URLs both redirect on GitHub. New installs should prefer `pi install npm:@capyup/pi-specs`.
 
-A pi package for spec-driven development. It turns a feature idea into a reviewed `PRODUCT.md`, a codebase-grounded `TECH.md`, and then an implementation that keeps specs, code, and tests aligned.
+A pi package for spec-driven development. It turns a feature idea into a reviewed `PRODUCT.md`, a codebase-grounded `TECH.md`, and an implementation that keeps specs, code, and tests aligned.
 
-This package is adapted from Warp's internal spec-driven workflow and generalized for any repository that benefits from PRD-style product specs, technical design docs, and agent-friendly implementation plans.
+This package is adapted from Warp's internal spec-driven workflow and generalized for repositories that benefit from PRD-style product specs, technical design docs, and agent-friendly implementation plans.
 
-## Required Dependencies
-
-`pi-specs` does not ship its own task runtime. Task tracking (`TaskCreate`, `TaskList`, `TaskUpdate`, ..., `/tasks`) is provided by [`@tintinweb/pi-tasks`](https://github.com/tintinweb/pi-tasks), which you must install alongside this package:
-
-```bash
-pi install npm:@tintinweb/pi-tasks   # required runtime dependency
-pi install npm:@capyup/pi-specs      # this package
-```
-
-If `pi-tasks` is missing the spec workflow still works for static `PRODUCT.md` / `TECH.md` editing, but the `Task*` tools and `/tasks` command will be unavailable and the `specs-implement` / `specs-audit` skills will skip the live task pieces.
+`pi-specs` intentionally does not provide or coordinate progress management. Agents and sessions can maintain their own working state, while durable project artifacts stay focused on product behavior, technical plans, implementation history, validation, and audit evidence.
 
 ## What This Package Adds
 
@@ -44,29 +35,12 @@ The extension registers direct commands so you do not have to remember skill nam
 
 The extension also registers helper tools that the model can call when useful:
 
-- `specs_scaffold` - creates `PRODUCT.md`, optional `TECH.md`, and `TASKS.yaml` under the documented spec root without overwriting existing files.
-- `specs_list` - lists spec directories under the documented spec root and reports whether each has product, tech, and task files.
-
-### Task Manager (provided by `@tintinweb/pi-tasks`)
-
-See [Required Dependencies](#required-dependencies) above for installation. Once `@tintinweb/pi-tasks` is installed, the spec workflow can drive these tools and the `/tasks` command:
-
-```text
-/tasks
-TaskCreate
-TaskList
-TaskGet
-TaskUpdate
-TaskOutput
-TaskStop
-TaskExecute
-```
-
-Use them for non-trivial spec workflows: create tasks for product spec, tech spec, implementation steps, validation, and follow-ups; mark tasks `in_progress` before starting and `completed` only when the work and relevant verification are done. Skip task tracking for tiny one-step fixes.
-
-By default, spec-driven tasks are stored in the active spec directory as `TASKS.yaml`, next to `PRODUCT.md` and `TECH.md`. That file is the task database and uses readable YAML. Task tools accept `specDir` when more than one spec exists, for example `specs/2026-05-01-builtin-task-workflow`.
-
-Tasks can also be stored in memory, per session, or project-wide under `.pi/tasks/`; settings live in `.pi/tasks-config.json`. `PI_TASKS=off`, named lists, and explicit paths are supported for automation or shared coordination. See the [`pi-tasks` README](https://github.com/tintinweb/pi-tasks) for the full configuration surface.
+- `spec_scaffold` - creates `PRODUCT.md`, `MILESTONES.md`, optional `TECH.md`, and a `SPECS.yaml` registry entry.
+- `spec_focus` / `spec_unfocus` - set or clear the currently focused spec.
+- `spec_status` - summarizes lifecycle state, artifact presence, latest audit metadata, and focus state.
+- `spec_finish` - runs local completion checks and marks a spec completed; audit execution is deferred to a future `spec_audit` flow.
+- `spec_append_milestone` - appends a free-form milestone paragraph to the currently focused spec's `MILESTONES.md`.
+- `specs_settings_get` / `specs_settings_update` - read or update future audit provider/model defaults in `SPECS.settings.yaml`.
 
 ### Command Palette
 
@@ -79,21 +53,18 @@ Pi may still show `skill:specs*` entries when `enableSkillCommands` is enabled. 
 From npm (recommended):
 
 ```bash
-pi install npm:@tintinweb/pi-tasks   # required, see Required Dependencies above
 pi install npm:@capyup/pi-specs
 ```
 
 From GitHub (always tracks `main`):
 
 ```bash
-pi install npm:@tintinweb/pi-tasks
 pi install git:github.com/capyup/pi-specs
 ```
 
 From a local checkout:
 
 ```bash
-pi install npm:@tintinweb/pi-tasks
 pi install /Users/lucas/Developer/pi-specs
 ```
 
@@ -145,15 +116,15 @@ Audit an existing project or feature:
 
 1. **Start from an issue or feature idea.** Use `/specs` when the change is substantial, ambiguous, risky, or likely to involve multiple files.
 2. **Discover conventions first.** Read `AGENTS.md`; if no spec root is documented, prefer existing `specs`, `docs/specs`, `.pi/specs`, then any nested `specs`, then create `./specs` and record the convention in `AGENTS.md`.
-3. **Confirm new conventions.** Before finalizing an inferred convention, tell the user the planned spec root, date-prefixed directory name, and YAML `TASKS.yaml` format, then ask whether to proceed or adjust.
-4. **Create live tasks for non-trivial work.** Use `TaskCreate` / `TaskUpdate` to track product spec, tech spec, implementation, validation, and follow-ups when the workflow has multiple meaningful steps.
-5. **Write `PRODUCT.md` first.** Capture observable behavior as numbered, testable invariants. Keep implementation details out.
-6. **Write `TECH.md` when warranted.** Read the product spec and current source code. Ground the plan in real files, types, state, data flow, risks, and validation.
-7. **Implement from approved specs.** Treat `PRODUCT.md` as behavior source of truth and `TECH.md` as the implementation plan.
-8. **Handle steering top-down.** If the user steers mid-workflow and behavior changes, update `PRODUCT.md`, then `TECH.md`, then `TASKS.yaml`, then implementation/tests as needed.
-9. **Keep specs and tasks current.** If implementation changes behavior, architecture, or sequencing, update the relevant spec and task state in the same PR.
+3. **Confirm new conventions.** Before finalizing an inferred convention, tell the user the planned spec root and date-prefixed directory name, then ask whether to proceed or adjust.
+4. **Write `PRODUCT.md` first.** Capture observable behavior as numbered, testable invariants. Keep implementation details out.
+5. **Write `TECH.md` when warranted.** Read the product spec and current source code. Ground the plan in real files, types, state, data flow, risks, and validation.
+6. **Implement from approved specs.** Treat `PRODUCT.md` as behavior source of truth and `TECH.md` as the implementation plan.
+7. **Handle steering top-down.** If the user steers mid-workflow and behavior changes, update `PRODUCT.md`, then `TECH.md`, then implementation/tests as needed.
+8. **Record implementation milestones.** Update `MILESTONES.md` after meaningful phase changes, including successes, setbacks, failed attempts, fixes, validation notes, and decisions.
+9. **Keep specs current.** If implementation changes behavior, architecture, or validation, update the relevant spec in the same PR.
 10. **Verify against behavior.** Tests and manual checks should map back to the behavior invariants in the product spec.
-11. **Audit before finishing.** Use `/specs-audit` when you want a final check for spec/code/test/task drift.
+11. **Audit before finishing.** Use `/specs-audit` when you want a final check for spec/code/test drift.
 
 ## Default Spec Layout
 
@@ -162,19 +133,19 @@ When a repository does not already have a convention, this package uses:
 ```text
 specs/YYYY-MM-DD-kebab-feature/PRODUCT.md
 specs/YYYY-MM-DD-kebab-feature/TECH.md
-specs/YYYY-MM-DD-kebab-feature/TASKS.yaml
+specs/YYYY-MM-DD-kebab-feature/MILESTONES.md
 ```
 
 Examples:
 
 ```text
-specs/2026-05-01-builtin-task-workflow/PRODUCT.md
-specs/2026-05-01-builtin-task-workflow/TECH.md
-specs/2026-05-01-builtin-task-workflow/TASKS.yaml
+specs/2026-05-01-spec-lifecycle-audit/PRODUCT.md
+specs/2026-05-01-spec-lifecycle-audit/TECH.md
+specs/2026-05-01-spec-lifecycle-audit/MILESTONES.md
 specs/2026-05-01-mermaid-markdown-in-plans/PRODUCT.md
 ```
 
-The skills first inspect `AGENTS.md` and current repository conventions. If no convention exists, the agent should propose the default to the user, then record the chosen spec root and `YYYY-MM-DD-kebab-feature` naming format in `AGENTS.md`.
+The skills first inspect `AGENTS.md` and current repository conventions. If no convention exists, the agent should propose the default to the user, then record the chosen spec root, `YYYY-MM-DD-kebab-feature` naming format, and `MILESTONES.md` convention in `AGENTS.md`.
 
 ## What Makes a Good Product Spec
 
@@ -200,6 +171,25 @@ A good `TECH.md` translates behavior into a concrete implementation plan:
 - tests and manual validation mapped to product behavior
 
 It should be grounded in the codebase. The agent should inspect source files before drafting rather than inventing architecture from memory.
+
+## What Makes a Good Milestones Log
+
+A good `MILESTONES.md` is a plain-text implementation history, not a status list or required schema. It should record meaningful moments that help a future engineer or agent understand how the implementation unfolded. Use the `spec_append_milestone` tool when available so the TUI shows the milestone write explicitly:
+
+```text
+spec_append_milestone {current_spec_name}
+{milestone content}
+```
+
+Record:
+
+- completed phases or important checkpoints
+- failed approaches and why they failed
+- setbacks, blockers, and how they were resolved
+- validation results or changes to the validation plan
+- decisions that affected the implementation path
+
+Use third-level headings with timestamps down to seconds for entries, for example `### 2026-05-13 14:16:36 - Short milestone title`; bullets or prose below are both fine. `spec_append_milestone` adds this heading automatically when the content does not already start with `###`. Keep it honest and lightweight; do not turn it into a rigid status database.
 
 ## When to Use Specs
 
@@ -228,7 +218,7 @@ pi-specs/
 ├── AGENTS.md
 ├── package.json
 ├── README.md
-├── THIRD_PARTY_NOTICES.md
+├── LICENSE
 ├── extensions/
 │   └── pi-specs.ts
 ├── test/
@@ -258,10 +248,8 @@ The tests use Node's built-in test runner with TypeScript type stripping, so no 
 
 - package manifest and pi resource shape
 - skill frontmatter consistency
-- extension shape, including the assertion that this package no longer registers Task* tools itself
-- README/AGENTS coverage for AGENTS discovery, steering alignment, and the `@tintinweb/pi-tasks` dependency
-
-If you also need to lint or rewrite `TASKS.yaml` files outside pi, use the upstream `@tintinweb/pi-tasks` tooling.
+- extension shape and spec command registration
+- README/AGENTS coverage for AGENTS discovery, steering alignment, lifecycle tools, and progress-free spec scaffolding
 
 Smoke-test local pi loading:
 
@@ -278,9 +266,7 @@ This package generalizes the spec-driven workflow used in the Warp codebase, esp
 - `write-tech-spec`
 - `implement-specs`
 
-Task tracking is provided by [`@tintinweb/pi-tasks`](https://github.com/tintinweb/pi-tasks) under the MIT license. See `THIRD_PARTY_NOTICES.md`.
-
-The package is intentionally project-agnostic: it reads the current repository's conventions first and only falls back to `specs/<id>/PRODUCT.md` + `TECH.md` when no stronger convention exists.
+The package is intentionally project-agnostic: it reads the current repository's conventions first and only falls back to `specs/<id>/PRODUCT.md` + `TECH.md` + `MILESTONES.md` when no stronger convention exists.
 
 ## License
 

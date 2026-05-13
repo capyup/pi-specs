@@ -4,13 +4,11 @@ Product spec: `specs/2026-05-01-spec-lifecycle-audit/PRODUCT.md`
 
 ## Context
 
-- `AGENTS.md` documents the spec root (`specs`) and date-prefixed spec directory format.
+- `AGENTS.md` documents the spec root (`specs`), date-prefixed spec directory format, free-form `MILESTONES.md` implementation logs, and steering order without any persisted progress layer.
 - `specs/SPECS.yaml` is introduced as the project-level lifecycle registry for specs.
 - `specs/SPECS.settings.yaml` is introduced as the project-level audit provider/model settings file.
-- `extensions/spec-driven-dev.ts` currently registers `/spec-workflow`, `/spec-product`, `/spec-tech`, `/spec-implement`, `/spec-audit`, `/spec-help`, `spec_scaffold`, and `spec_list`.
-- `src/tasks/index.ts` currently resolves the active task store from `specDir`, current cwd, active spec config, or a single `TASKS.yaml` candidate; this must change to fail closed when no spec is resolvable.
-- `src/tasks/tasks-config.ts` already has an `activeSpecDir` field but does not yet expose focus as a lifecycle concept.
-- `src/tasks/task-store.ts` now parses/renders YAML `TASKS.yaml` and keeps legacy Markdown parsing only for migration/compatibility.
+- `extensions/pi-specs.ts` currently registers `/specs`, `/specs-product`, `/specs-tech`, `/specs-implement`, `/specs-audit`, `/specs-help`, `spec_scaffold`, `specs_list`, and should add lifecycle/settings tools plus `spec_append_milestone`.
+- The package currently has no local progress runtime; README, skill, scaffold, and test references should keep durable progress tracking out of scope rather than redirecting to another package.
 - Pi extension docs expose `ctx.model` for current provider/model access and model selection events for tracking model changes.
 - Pi CLI can be launched as a separate process with `--provider`, `--model`, `--no-session`, and `-p` to isolate audit memory.
 
@@ -48,13 +46,6 @@ commands:
   finish: /spec-finish [spec-id-or-path]
   settings: /specs-settings
 specs:
-  - id: 2026-05-01-builtin-task-workflow
-    path: specs/2026-05-01-builtin-task-workflow
-    title: Built-in task tracking for spec-driven workflow
-    status: completed
-    focused: false
-    last_audit: null
-    updated: 2026-05-01
   - id: 2026-05-01-spec-lifecycle-audit
     path: specs/2026-05-01-spec-lifecycle-audit
     title: Spec lifecycle registry and isolated audit workflow
@@ -70,7 +61,7 @@ Registry invariants:
 2. `focused` is either `null` or the id of exactly one spec in `specs`.
 3. Each spec entry has `id`, `path`, `title`, `status`, `focused`, `last_audit`, and `updated`.
 4. Exactly one entry may have `focused: true`; it must match the top-level `focused` value.
-5. `completed` status is authoritative for completion; no checkbox mirror is used.
+5. `completed` status is authoritative for completion; no checkbox or progress-database mirror is used.
 6. `commands` documents the canonical lifecycle commands so registry readers can discover the focus/status/finish/settings surfaces.
 7. Unknown top-level keys are preserved when possible, but known keys are normalized on write.
 
@@ -84,71 +75,56 @@ draft, ready_for_review, implementing, validating, audit_running, audit_failed, 
 
 Add extension commands:
 
-- `/spec-focus <spec-id-or-path>` - set exactly one focused spec in `SPECS.yaml` and update task focus defaults.
+- `/spec-focus <spec-id-or-path>` - set exactly one focused spec in `SPECS.yaml`.
 - `/spec-unfocus` - clear focused spec.
-- `/spec-status [spec-id-or-path]` - summarize lifecycle, tasks, validation/audit state, and completion eligibility.
-- `/spec-finish [spec-id-or-path]` - run completion checks and automatic isolated audit before marking complete.
+- `/spec-status [spec-id-or-path]` - summarize lifecycle, validation/audit state, and completion eligibility.
+- `/spec-finish [spec-id-or-path]` - run local completion checks and mark complete when required artifacts exist; separate audit execution is deferred to a future `spec_audit` design.
 - `/specs-settings` - open a settings UI for `audit-provider` and `audit-model`, persisted to `specs/SPECS.settings.yaml`.
 
 Add or update tools if useful:
 
 - `spec_focus`
+- `spec_unfocus`
+- `spec_scaffold`
 - `spec_status`
 - `spec_finish`
 - `specs_settings_get` / `specs_settings_update`
+- `spec_append_milestone` for appending a paragraph to the focused spec's `MILESTONES.md` with visible TUI tool-call context
 
 ### Focus behavior
 
 1. `spec_focus` resolves the target against the documented spec root.
 2. It updates `SPECS.yaml` so top-level `focused` equals the target id, target entry has `focused: true`, and every other entry has `focused: false`.
-3. It updates `.pi/tasks-config.json` `activeSpecDir` as a compatibility cache, but `SPECS.yaml` remains the lifecycle source of truth.
-4. Task resolution in `src/tasks/index.ts` checks explicit `specDir`, then focused spec in `SPECS.yaml`, then current cwd if it is inside a spec directory, and resolves those specs to `TASKS.yaml`.
-5. Task resolution must not fall back to memory/session/project storage for `TaskCreate` or mutating task operations when no spec is resolvable.
-6. `/tasks` should show the focused spec id/path in its menu title or status line.
-7. Existing `/spec-*` skill prompts with no arguments should read `AGENTS.md` and `specs/SPECS.yaml` first, then use the focused spec when exactly one focused spec is configured.
+3. Existing `/specs-*` skill prompts with no arguments should read `AGENTS.md` and `specs/SPECS.yaml` first, then use the focused spec when exactly one focused spec is configured.
+4. Focus must not depend on any external progress manager or persisted progress database.
 
-### Task creation guard
+### Milestone log workflow
 
-Implement a fail-closed guard in `src/tasks/index.ts`:
+Add a free-form implementation log without reintroducing progress management:
 
-1. Add a resolver that returns `{ store, specDir }` only when an explicit or focused spec directory with `TASKS.yaml` is available.
-2. `TaskCreate`, `TaskUpdate`, `TaskStop`, `TaskExecute`, and `/tasks` mutations must call this resolver before mutating task state.
-3. If no spec is resolved, return a clear error such as: `No active spec. Create or focus a spec before using task tools.`
-4. Read-only operations may show `No active spec` instead of creating fallback storage.
-5. Remove or restrict automatic memory/session/project fallback for normal spec workflow task tools. Environment overrides may remain only for explicit non-default testing/automation paths, but the default UX must not create tasks before a spec exists.
-6. `spec_scaffold` may create an empty `TASKS.yaml`, but it should not create task entries before `PRODUCT.md` exists.
+1. `spec_scaffold` creates `PRODUCT.md`, optional `TECH.md`, and `MILESTONES.md`.
+2. `MILESTONES.md` starts with a short note explaining that it is free-form, uses `### YYYY-MM-DD HH:mm:ss - Short milestone title` entry headings, and may record milestones, failed attempts, setbacks, fixes, validation notes, and decisions.
+3. `specs_list` reports product, tech, and milestone log file presence.
+4. `spec_append_milestone` resolves the focused spec from `specs/SPECS.yaml`, validates that `current_spec_name` matches the focused id/path/title, creates `MILESTONES.md` if it is missing, and appends `milestone_content` as a paragraph under an automatic `### YYYY-MM-DD HH:mm:ss - Milestone` heading unless the content already starts with a third-level heading.
+5. `spec_append_milestone` returns an error instead of writing when no focused spec exists, the displayed spec name is stale, the content is empty, or the resolved spec path is outside the current project.
+6. `/specs-help` lists only spec commands and spec helper behavior.
+7. Skills describe planning as agent/session-local reasoning, while `MILESTONES.md` records durable implementation history after meaningful events.
+8. README and tests do not instruct users to install, call, or maintain a separate progress manager.
+9. Existing persisted progress files stay removed from the repository.
 
-### Completion and audit behavior
+### Completion behavior
 
 `spec_finish` should:
 
-1. Resolve target spec.
-2. Run `npm run tasks:check` or equivalent direct checker for that spec's `TASKS.yaml`.
-3. Read `PRODUCT.md`, `TECH.md`, `TASKS.yaml`, `SPECS.yaml`, and existing audit records.
-4. If tasks are incomplete, report blockers and do not audit unless the user explicitly asks to audit anyway.
-5. If completion is plausible, set `SPECS.yaml` status to `audit_running`.
-6. Launch isolated audit using a child process:
+1. Resolve target spec, defaulting to the focused spec.
+2. Read `PRODUCT.md`, `TECH.md` when present, `MILESTONES.md` when present, `SPECS.yaml`, and existing audit record metadata.
+3. Require `PRODUCT.md` and `MILESTONES.md`; allow missing `TECH.md` only with a warning because trivial changes may not need a technical plan.
+4. Mark the registry entry `completed`, update `updated`, and preserve `last_audit` unchanged.
+5. Return a concise TUI result that names the spec, path, and any warnings, including that separate audit execution is deferred.
 
-```bash
-pi --no-session --provider <provider> --model <model> -p "<self-contained audit prompt>"
-```
+`spec_audit` is intentionally not implemented in this phase.
 
-Consider adding `--no-extensions --no-prompt-templates` if recursive extension behavior becomes a problem. Keep context files enabled unless tests show this creates unwanted coupling, because `AGENTS.md` is part of repository convention evidence.
-
-7. Write audit output to:
-
-```text
-specs/<id>/audits/<timestamp>-<provider>--<model>.md
-```
-
-8. Sanitize provider/model for filenames by replacing path-unsafe characters with `-`.
-9. Update `SPECS.yaml` `last_audit`, `updated`, and `status`:
-   - `completed` if audit passes and all completion gates pass.
-   - `audit_failed` if audit reports drift/blockers.
-   - prior active status if the audit process fails before producing a usable result.
-10. If audit fails with concrete fixes, append compact follow-up tasks to `TASKS.yaml` or report suggested task entries for the parent agent to add.
-
-### Audit provider/model settings
+### Future audit provider/model settings
 
 Persist settings in:
 
@@ -163,49 +139,33 @@ audit_provider: openai
 audit_model: gpt-5.4-pro
 ```
 
-Selection rules:
+Selection rules for the future audit flow:
 
-1. Read current provider/model from `ctx.model` at command execution time.
+1. Read current provider/model from `ctx.model` at command execution time when available.
 2. Read settings from `SPECS.settings.yaml`.
 3. If `audit_provider` is missing or empty, use current provider.
 4. If `audit_model` is missing or empty, use current model id.
 5. Record both selected values and their source (`settings` or `current-session-fallback`) in the audit record.
-
-### Audit prompt
-
-The child `pi` process should receive a self-contained prompt that asks it to:
-
-- read `AGENTS.md`
-- read `specs/SPECS.yaml`
-- read the target spec's `PRODUCT.md`, `TECH.md`, `TASKS.yaml`
-- inspect relevant implementation/tests when the tech spec points to code paths
-- classify each key behavior as implemented/tested/partial/missing/stale
-- report blockers, drift, validation gaps, and recommended task additions
-- end with a machine-searchable verdict line such as `SPEC_AUDIT_VERDICT: pass` or `SPEC_AUDIT_VERDICT: fail`
-
-The parent process should parse that verdict line conservatively. Missing verdict means audit failed.
 
 ## Testing and validation
 
 - Unit-test `SPECS.yaml` parser/renderer with multiple specs, one focused spec, status updates, and last audit updates.
 - Unit-test settings fallback: missing file, empty provider, empty model, and fully configured settings.
 - Unit-test audit filename sanitization and timestamp-provider--model naming.
-- Unit-test focus behavior: focusing one spec clears focus from others and updates active spec cache.
-- Unit-test task creation guard: mutating task tools fail when no explicit or focused spec can be resolved, and do not create memory/session/project fallback task stores.
-- Unit-test completion gate logic for incomplete tasks, failed audit, missing verdict, and passing audit.
-- Integration-smoke test isolated audit command construction without invoking a real model by injecting a fake command runner.
-- Update README and skills to document `SPECS.yaml`, `/spec-focus`, `/spec-status`, `/spec-finish`, `/specs-settings`, and automatic isolated audit.
+- Unit-test focus behavior: focusing one spec clears focus from others.
+- Unit-test or shape-test `spec_append_milestone` registration, parameters, focused-spec resolution, stale spec-name guard, timestamp-to-seconds heading, and append behavior.
+- Unit-test completion gate logic for missing required artifacts, missing optional TECH warnings, and completed status updates.
+- Update README and skills to document `SPECS.yaml`, `MILESTONES.md`, `spec_focus`, `spec_status`, `spec_finish`, settings tools, and deferred audit execution.
+- Add regression checks that user-facing docs do not mention removed progress-management surfaces and do mention milestone logs.
 
 ## Risks and mitigations
 
-- Risk: launching `pi` recursively could load the same extension and create nested side effects. Mitigation: make audit command construction configurable and consider `--no-extensions` if recursion appears in testing.
-- Risk: current provider/model may not be directly available in every extension context. Mitigation: use `ctx.model` when available and track `model_select` events as fallback.
-- Risk: audit result parsing is brittle. Mitigation: require a strict verdict line and treat missing verdict as failure.
-- Risk: automatic audit may be expensive. Mitigation: run it only on finish/completion attempts, not on every task update.
+- Risk: users expect finish to run audit immediately. Mitigation: make tool output explicit that audit execution is deferred to the future `spec_audit` flow.
+- Risk: current provider/model may not be directly available in every extension context. Mitigation: store optional future-audit defaults without requiring current-session values.
 - Risk: `SPECS.yaml` hand edits can break lifecycle parsing. Mitigation: validate schema, normalize known keys, and report repair suggestions.
-- Risk: users may expect task tools to work as a general todo system. Mitigation: fail closed before spec focus/start and make the error explain that tasks belong to specs.
+- Risk: milestone logs become noisy or stale. Mitigation: keep them free-form, use third-level headings with timestamps down to seconds, and update only after meaningful implementation events, especially setbacks, fixes, validation changes, and decisions.
+- Risk: removing persisted progress files reduces explicit execution history. Mitigation: rely on the active agent/session for execution state and on PRODUCT/TECH/MILESTONES/audit records for durable product and implementation evidence.
 
 ## Follow-ups
 
 - Decide whether all lifecycle operations should be exposed as both tools and slash commands.
-- Decide whether a scheduled/background audit should run when all tasks complete, or only when `/spec-finish` is invoked.

@@ -16,17 +16,10 @@ commands:
   finish: /spec-finish [spec-id-or-path]
   settings: /specs-settings
 specs:
-  - id: 2026-05-01-builtin-task-workflow
-    path: specs/2026-05-01-builtin-task-workflow
-    title: Built-in task tracking for spec-driven workflow
-    status: completed
-    focused: false
-    last_audit: null
-    updated: 2026-05-01
   - id: 2026-05-01-spec-lifecycle-audit
     path: specs/2026-05-01-spec-lifecycle-audit
     title: Spec lifecycle registry and isolated audit workflow
-    status: ready_for_review
+    status: completed
     focused: true
     last_audit: null
-    updated: 2026-05-01
+    updated: 2026-05-13
