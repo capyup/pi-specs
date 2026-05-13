@@ -79,9 +79,10 @@ type SpecRegistry = {
 type SpecSettings = {
 	audit_provider?: string;
 	audit_model?: string;
+	language?: string;
 };
 
-function buildSkillPrompt(skill: string, args: string, usage: string): string {
+function buildSkillPrompt(skill: string, args: string, usage: string, settings: SpecSettings = {}): string {
 	const trimmed = args.trim();
 	const noArgsInstruction = [
 		`No arguments were provided for ${usage}.`,
@@ -90,15 +91,21 @@ function buildSkillPrompt(skill: string, args: string, usage: string): string {
 		"If SPECS.yaml has exactly one focused spec entry, use that focused spec as the target.",
 		"Ask the user only if no focused spec can be found or the target remains ambiguous after reading the registry.",
 	].join(" ");
-	return [
+	const lines = [
 		`Use the ${skill} skill for this request.`,
 		"Read that skill's SKILL.md before taking action if it is available.",
 		trimmed ? `User request: ${trimmed}` : noArgsInstruction,
-	].join("\n\n");
+	];
+	if (settings.language) {
+		lines.push(`The user prefers to communicate and write documentation in: ${settings.language}.`);
+	}
+	return lines.join("\n\n");
 }
 
-function sendSkillMessage(pi: ExtensionAPI, ctx: ExtensionCommandContext, skill: string, args: string, usage: string) {
-	const prompt = buildSkillPrompt(skill, args, usage);
+async function sendSkillMessage(pi: ExtensionAPI, ctx: ExtensionCommandContext, skill: string, args: string, usage: string) {
+	const { specRoot } = await resolveSpecRoot(ctx.cwd);
+	const settings = await readSettings(specRoot);
+	const prompt = buildSkillPrompt(skill, args, usage, settings);
 	if (ctx.isIdle()) {
 		pi.sendUserMessage(prompt);
 		return;
@@ -629,6 +636,7 @@ async function readSettings(specRoot: string): Promise<SpecSettings> {
 		return {
 			audit_provider: parseYamlScalar(text.match(/^audit_provider:\s*(.*)$/m)?.[1] ?? "") ?? undefined,
 			audit_model: parseYamlScalar(text.match(/^audit_model:\s*(.*)$/m)?.[1] ?? "") ?? undefined,
+			language: parseYamlScalar(text.match(/^language:\s*(.*)$/m)?.[1] ?? "") ?? undefined,
 		};
 	} catch {
 		return {};
@@ -637,7 +645,7 @@ async function readSettings(specRoot: string): Promise<SpecSettings> {
 
 async function writeSettings(specRoot: string, settings: SpecSettings) {
 	await mkdir(specRoot, { recursive: true });
-	await writeFile(join(specRoot, "SPECS.settings.yaml"), `audit_provider: ${yamlValue(settings.audit_provider)}\naudit_model: ${yamlValue(settings.audit_model)}\n`);
+	await writeFile(join(specRoot, "SPECS.settings.yaml"), `audit_provider: ${yamlValue(settings.audit_provider)}\naudit_model: ${yamlValue(settings.audit_model)}\nlanguage: ${yamlValue(settings.language)}\n`);
 }
 
 type SpecQuestionnaireQuestion = {
@@ -812,7 +820,7 @@ export default function piSpecsExtension(pi: ExtensionAPI) {
 		pi.registerCommand(command.name, {
 			description: command.description,
 			handler: async (args, ctx) => {
-				sendSkillMessage(pi, ctx, command.skill, args, command.usage);
+				await sendSkillMessage(pi, ctx, command.skill, args, command.usage);
 			},
 		});
 	}
@@ -824,6 +832,7 @@ export default function piSpecsExtension(pi: ExtensionAPI) {
 			lines.push("Tools: spec_scaffold, spec_research, spec_questionaire, spec_questionnaire, spec_focus, spec_unfocus, spec_status, spec_finish, spec_append_milestone, specs_settings_get, specs_settings_update");
 			lines.push("/specs-help - Show this help");
 			lines.push("/specs-clear - Clear focused spec and hide widget");
+			lines.push("/specs-settings - Configure language, audit provider, and model");
 			ctx.ui.notify(lines.join("\n"), "info");
 		},
 	});
@@ -837,6 +846,55 @@ export default function piSpecsExtension(pi: ExtensionAPI) {
 			await saveRegistry(registryPath, registry);
 			await updateSpecUI(ctx);
 			ctx.ui.notify(previous ? `Cleared focused spec: ${previous}` : "No focused spec was set.", "info");
+		},
+	});
+
+	pi.registerCommand("specs-settings", {
+		description: "Open spec settings panel to configure language, audit provider, and model",
+		handler: async (_args, ctx) => {
+			if (!ctx.hasUI) {
+				ctx.ui.notify("UI not available in non-interactive mode.", "error");
+				return;
+			}
+			const { specRoot } = await resolveSpecRoot(ctx.cwd);
+			const settings = await readSettings(specRoot);
+
+			const field = await ctx.ui.select("Choose setting to modify", [
+				`Language: ${settings.language ?? "not set"}`,
+				`Audit provider: ${settings.audit_provider ?? "default"}`,
+				`Audit model: ${settings.audit_model ?? "default"}`,
+				"Done",
+			]);
+			if (!field || field === "Done") return;
+
+			if (field.startsWith("Language")) {
+				const choices = ["中文", "English", "日本語", "Español", "Deutsch", "Français", "None (clear)", "Custom..."];
+				const selected = await ctx.ui.select("Select language preference", choices);
+				if (!selected) return;
+				if (selected === "None (clear)") {
+					settings.language = undefined;
+				} else if (selected === "Custom...") {
+					const custom = await ctx.ui.input("Enter custom language", "e.g. Português, Русский");
+					if (!custom) return;
+					settings.language = custom.trim();
+				} else {
+					settings.language = selected;
+				}
+				await writeSettings(specRoot, settings);
+				ctx.ui.notify(`Language set to: ${settings.language ?? "cleared"}`, "success");
+			} else if (field.startsWith("Audit provider")) {
+				const val = await ctx.ui.input("Enter audit provider (empty to clear)", "e.g. openai, anthropic");
+				if (val === undefined) return;
+				settings.audit_provider = val.trim() || undefined;
+				await writeSettings(specRoot, settings);
+				ctx.ui.notify(`Audit provider set to: ${settings.audit_provider ?? "default"}`, "success");
+			} else if (field.startsWith("Audit model")) {
+				const val = await ctx.ui.input("Enter audit model (empty to clear)", "e.g. gpt-4, claude-sonnet");
+				if (val === undefined) return;
+				settings.audit_model = val.trim() || undefined;
+				await writeSettings(specRoot, settings);
+				ctx.ui.notify(`Audit model set to: ${settings.audit_model ?? "default"}`, "success");
+			}
 		},
 	});
 
@@ -1111,33 +1169,35 @@ export default function piSpecsExtension(pi: ExtensionAPI) {
 	pi.registerTool({
 		name: "specs_settings_get",
 		label: "Specs Settings Get",
-		description: "Read spec-root settings for future audit provider/model defaults.",
+		description: "Read spec-root settings including language preference, audit provider, and model.",
 		promptSnippet: "Read specs settings.",
 		parameters: Type.Object({}),
 		async execute(_toolCallId, _params, _signal, _onUpdate, ctx) {
 			const { specRoot } = await resolveSpecRoot(ctx.cwd);
 			const settings = await readSettings(specRoot);
-			return { content: [{ type: "text", text: [`Specs settings: ${relative(resolve(ctx.cwd), join(specRoot, "SPECS.settings.yaml"))}`, `audit_provider: ${settings.audit_provider ?? "current-session fallback"}`, `audit_model: ${settings.audit_model ?? "current-session fallback"}`].join("\n") }], details: settings };
+			return { content: [{ type: "text", text: [`Specs settings: ${relative(resolve(ctx.cwd), join(specRoot, "SPECS.settings.yaml"))}`, `language: ${settings.language ?? "not set"}`, `audit_provider: ${settings.audit_provider ?? "current-session fallback"}`, `audit_model: ${settings.audit_model ?? "current-session fallback"}`].join("\n") }], details: settings };
 		},
 	});
 
 	pi.registerTool({
 		name: "specs_settings_update",
 		label: "Specs Settings Update",
-		description: "Update spec-root settings for future audit provider/model defaults.",
+		description: "Update spec-root settings including language preference, audit provider, and model.",
 		promptSnippet: "Update specs settings.",
 		parameters: Type.Object({
+			language: Type.Optional(Type.String({ description: "User preferred language for communication and documentation. Empty string clears the setting." })),
 			audit_provider: Type.Optional(Type.String({ description: "Audit provider. Empty string clears to current-session fallback." })),
 			audit_model: Type.Optional(Type.String({ description: "Audit model. Empty string clears to current-session fallback." })),
 		}),
 		async execute(_toolCallId, params, _signal, _onUpdate, ctx) {
 			const { specRoot } = await resolveSpecRoot(ctx.cwd);
 			const settings = await readSettings(specRoot);
+			if (params.language !== undefined) settings.language = params.language.trim() || undefined;
 			if (params.audit_provider !== undefined) settings.audit_provider = params.audit_provider.trim() || undefined;
 			if (params.audit_model !== undefined) settings.audit_model = params.audit_model.trim() || undefined;
 			await writeSettings(specRoot, settings);
 			await updateSpecUI(ctx);
-			return { content: [{ type: "text", text: [`Specs settings updated`, `audit_provider: ${settings.audit_provider ?? "current-session fallback"}`, `audit_model: ${settings.audit_model ?? "current-session fallback"}`].join("\n") }], details: settings };
+			return { content: [{ type: "text", text: [`Specs settings updated`, `language: ${settings.language ?? "not set"}`, `audit_provider: ${settings.audit_provider ?? "current-session fallback"}`, `audit_model: ${settings.audit_model ?? "current-session fallback"}`].join("\n") }], details: settings };
 		},
 	});
 
