@@ -1,14 +1,10 @@
 version: 1
-focused: 2026-05-13-superpowers-inspired-research-flow
+focused: 2026-05-13-specs-footer-widget
 status_vocabulary:
   - draft
-  - ready_for_review
   - implementing
-  - validating
   - audit_running
-  - audit_failed
   - completed
-  - archived
 commands:
   focus: /spec-focus <spec-id-or-path>
   unfocus: /spec-unfocus
@@ -23,10 +19,17 @@ specs:
     focused: false
     last_audit: null
     updated: 2026-05-13
+  - id: 2026-05-13-specs-footer-widget
+    path: specs/2026-05-13-specs-footer-widget
+    title: Specs footer widget
+    status: completed
+    focused: true
+    last_audit: null
+    updated: 2026-05-13
   - id: 2026-05-13-superpowers-inspired-research-flow
     path: specs/2026-05-13-superpowers-inspired-research-flow
     title: Superpowers-inspired research, grilling, and audit flow
     status: draft
-    focused: true
+    focused: false
     last_audit: null
     updated: 2026-05-13

@@ -1,7 +1,8 @@
 import { access, appendFile, mkdir, readdir, readFile, writeFile } from "node:fs/promises";
 import { basename, join, relative, resolve } from "node:path";
-import type { ExtensionAPI, ExtensionCommandContext } from "@earendil-works/pi-coding-agent";
+import type { ExtensionAPI, ExtensionCommandContext, ExtensionContext } from "@earendil-works/pi-coding-agent";
 import { Type } from "typebox";
+import { SpecWidgetComponent, specFooterStatus, type SpecWidgetRecord } from "./widgets/spec-widget.ts";
 
 const COMMANDS = [
 	{
@@ -48,7 +49,8 @@ const COMMANDS = [
 	},
 ] as const;
 
-const STATUS_VOCABULARY = ["draft", "ready_for_review", "implementing", "validating", "audit_running", "audit_failed", "completed", "archived"] as const;
+const STATUS_VOCABULARY = ["draft", "implementing", "audit_running", "completed"] as const;
+const SPEC_WIDGET_KEY = "specs";
 const COMMAND_REGISTRY = {
 	focus: "/spec-focus <spec-id-or-path>",
 	unfocus: "/spec-unfocus",
@@ -525,6 +527,102 @@ async function artifactState(specDir: string) {
 	return { product, tech, milestones, latestAudit };
 }
 
+async function researchReportCount(specDir: string): Promise<number> {
+	try {
+		return (await readdir(join(specDir, "research"))).filter((entry) => entry.endsWith(".md")).length;
+	} catch {
+		return 0;
+	}
+}
+
+async function readLatestMilestones(milestonesPath: string, limit = 3): Promise<{ items: Array<{ date: string; summary: string }>; total: number }> {
+	try {
+		const text = await readFile(milestonesPath, "utf-8");
+		const blocks = text.split(/^###\s+/m).slice(1);
+		const results: Array<{ date: string; summary: string }> = [];
+		for (const block of blocks) {
+			const headingMatch = block.match(/^(\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}:\d{2})\s*[-–]\s*(.+)$/m);
+			if (!headingMatch) continue;
+			const date = headingMatch[1];
+			const body = block.slice(headingMatch.index! + headingMatch[0].length).trim();
+			const firstLine = body.split(/\n+/).find((line) => line.trim().length > 0) ?? "";
+			const summary = firstLine.trim().slice(0, 120);
+			results.push({ date, summary });
+		}
+		return { items: results.slice(-limit).reverse(), total: results.length };
+	} catch {
+		return { items: [], total: 0 };
+	}
+}
+
+function specCreatedTimestamp(specId: string): number {
+	const dateMatch = specId.match(/^(\d{4}-\d{2}-\d{2})/);
+	if (!dateMatch) return Date.now();
+	const [y, m, d] = dateMatch[1].split("-").map(Number);
+	return Date.UTC(y, m - 1, d);
+}
+
+async function findExistingSpecRoot(cwd: string): Promise<string | undefined> {
+	try {
+		const documented = extractSpecRootFromAgents(await readFile(join(cwd, "AGENTS.md"), "utf-8"));
+		if (documented) {
+			const specRoot = resolve(cwd, documented);
+			if (await exists(specRoot)) return specRoot;
+		}
+	} catch {
+		// Missing AGENTS.md means there may still be a conventional specs directory.
+	}
+
+	for (const candidate of ["specs", "docs/specs", ".pi/specs"]) {
+		const specRoot = resolve(cwd, candidate);
+		if (await exists(specRoot)) return specRoot;
+	}
+	return findNestedSpecsDir(cwd);
+}
+
+async function loadRegistryIfPresent(cwd: string): Promise<{ registry: SpecRegistry; specRoot: string; registryPath: string } | null> {
+	const specRoot = await findExistingSpecRoot(cwd);
+	if (!specRoot) return null;
+	const registryPath = join(specRoot, "SPECS.yaml");
+	try {
+		return { registry: parseRegistry(await readFile(registryPath, "utf-8")), specRoot, registryPath };
+	} catch {
+		return null;
+	}
+}
+
+async function specWidgetState(cwd: string): Promise<{ spec: SpecWidgetRecord | null; specCount: number }> {
+	const loaded = await loadRegistryIfPresent(cwd);
+	if (!loaded) return { spec: null, specCount: 0 };
+	const spec = findSpec(loaded.registry, undefined);
+	if (!spec) return { spec: null, specCount: loaded.registry.specs.length };
+	const absoluteSpecDir = resolve(cwd, spec.path);
+	const state = await artifactState(absoluteSpecDir);
+	const milestonesPath = join(absoluteSpecDir, "MILESTONES.md");
+	const { items: latestMilestones, total: milestonesTotal } = state.milestones ? await readLatestMilestones(milestonesPath, 3) : { items: [], total: 0 };
+	const researchReports = await researchReportCount(absoluteSpecDir);
+	return {
+		spec: {
+			id: spec.id,
+			title: spec.title,
+			status: spec.status,
+			focused: spec.focused,
+			path: spec.path,
+			artifacts: {
+				product: state.product,
+				tech: state.tech,
+				milestones: state.milestones,
+				researchReports,
+			},
+			lastAudit: spec.last_audit ?? state.latestAudit,
+			latestMilestones,
+			milestonesTotal,
+			createdTimestamp: specCreatedTimestamp(spec.id),
+		},
+		specCount: loaded.registry.specs.length,
+	};
+}
+
 async function readSettings(specRoot: string): Promise<SpecSettings> {
 	try {
 		const text = await readFile(join(specRoot, "SPECS.settings.yaml"), "utf-8");
@@ -640,6 +738,76 @@ function registerSpecQuestionnaireTool(pi: ExtensionAPI, name: "spec_questionair
 }
 
 export default function piSpecsExtension(pi: ExtensionAPI) {
+	let specWidgetComponent: SpecWidgetComponent | null = null;
+	let widgetRegistered = false;
+	let currentWidgetState: { spec: SpecWidgetRecord | null; specCount: number } = { spec: null, specCount: 0 };
+
+	function clearSpecWidget(ctx: ExtensionContext): void {
+		ctx.ui.setStatus(SPEC_WIDGET_KEY, undefined);
+		ctx.ui.setWidget(SPEC_WIDGET_KEY, undefined);
+		widgetRegistered = false;
+		specWidgetComponent = null;
+		currentWidgetState = { spec: null, specCount: 0 };
+	}
+
+	let statusRefreshTimer: ReturnType<typeof setInterval> | null = null;
+	function stopStatusRefresh(): void {
+		if (statusRefreshTimer) {
+			clearInterval(statusRefreshTimer);
+			statusRefreshTimer = null;
+		}
+	}
+	function startStatusRefresh(): void {
+		if (statusRefreshTimer) return;
+		statusRefreshTimer = setInterval(() => {
+			specWidgetComponent?.update();
+		}, 1000);
+		statusRefreshTimer.unref?.();
+	}
+
+	async function updateSpecUI(ctx: ExtensionContext): Promise<void> {
+		if (!ctx.hasUI) return;
+		currentWidgetState = await specWidgetState(ctx.cwd);
+		if (!currentWidgetState.spec && currentWidgetState.specCount <= 0) {
+			clearSpecWidget(ctx);
+			return;
+		}
+
+		ctx.ui.setStatus(SPEC_WIDGET_KEY, specFooterStatus(currentWidgetState.spec, { specCount: currentWidgetState.specCount }));
+		if (!widgetRegistered) {
+			ctx.ui.setWidget(
+				SPEC_WIDGET_KEY,
+				(tui, theme) => {
+					specWidgetComponent = new SpecWidgetComponent({
+						tui,
+						theme,
+						getSpec: () => currentWidgetState.spec,
+						getSpecCount: () => currentWidgetState.specCount,
+					});
+					return specWidgetComponent;
+				},
+				{ placement: "aboveEditor" },
+			);
+			widgetRegistered = true;
+		} else {
+			specWidgetComponent?.update();
+		}
+		if (currentWidgetState.spec) {
+			startStatusRefresh();
+		} else {
+			stopStatusRefresh();
+		}
+	}
+
+	pi.on("session_start", async (_event, ctx) => {
+		await updateSpecUI(ctx);
+	});
+
+	pi.on("session_shutdown", async (_event, ctx) => {
+		stopStatusRefresh();
+		if (ctx.hasUI) clearSpecWidget(ctx);
+	});
+
 	for (const command of COMMANDS) {
 		pi.registerCommand(command.name, {
 			description: command.description,
@@ -735,6 +903,7 @@ export default function piSpecsExtension(pi: ExtensionAPI) {
 
 			spec.updated = today();
 			await saveRegistry(registryPath, registry);
+			await updateSpecUI(ctx);
 
 			const lines = [
 				`Spec research prepared: ${spec.id}`,
@@ -793,6 +962,7 @@ export default function piSpecsExtension(pi: ExtensionAPI) {
 			const spec = upsertSpec(registry, { id: specId, path: relativeSpecDir, title, status: "draft", focused: false, last_audit: null, updated: today() });
 			if (params.focus ?? true) setFocused(registry, spec.id);
 			await saveRegistry(registryPath, registry);
+			await updateSpecUI(ctx);
 
 			const text = [
 				`Spec scaffolded: ${specId}`,
@@ -818,6 +988,7 @@ export default function piSpecsExtension(pi: ExtensionAPI) {
 			setFocused(registry, spec.id);
 			spec.updated = today();
 			await saveRegistry(registryPath, registry);
+			await updateSpecUI(ctx);
 			return { content: [{ type: "text", text: [`Focused spec: ${spec.id}`, `Title: ${spec.title}`, `Path: ${spec.path}`].join("\n") }], details: { spec: spec.id } };
 		},
 	});
@@ -833,6 +1004,7 @@ export default function piSpecsExtension(pi: ExtensionAPI) {
 			const previous = registry.focused;
 			setFocused(registry, null);
 			await saveRegistry(registryPath, registry);
+			await updateSpecUI(ctx);
 			return { content: [{ type: "text", text: previous ? `Cleared focused spec: ${previous}` : "No focused spec was set." }], details: { previous } };
 		},
 	});
@@ -879,6 +1051,7 @@ export default function piSpecsExtension(pi: ExtensionAPI) {
 			spec.status = "completed";
 			spec.updated = today();
 			await saveRegistry(registryPath, registry);
+			await updateSpecUI(ctx);
 			const warnings = [!state.tech ? "TECH.md is missing; accepted only if implementation was trivial." : undefined, "Spec audit was not run; use the future spec_audit flow when available."].filter(Boolean);
 			return {
 				content: [{ type: "text", text: [`Spec completed: ${spec.id}`, `Path: ${spec.path}`, warnings.length ? `Notes:\n${warnings.map((warning) => `- ${warning}`).join("\n")}` : "Notes: none"].join("\n") }],
@@ -893,9 +1066,11 @@ export default function piSpecsExtension(pi: ExtensionAPI) {
 		description: "Append a free-form milestone paragraph to the focused spec's MILESTONES.md file with a timestamp heading down to seconds.",
 		promptSnippet: "Append an implementation milestone to the currently focused spec.",
 		promptGuidelines: [
-			"Use spec_append_milestone after meaningful implementation events, including phase completions, failed attempts, setbacks, fixes, validation notes, and decisions.",
+			"When a focused spec exists, ALWAYS use spec_append_milestone to record milestones. Do NOT directly edit or write MILESTONES.md.",
+			"Trigger this tool after any meaningful work on the focused spec: code changes, design decisions, test adjustments, completed phases, failed attempts, setbacks, fixes, validation notes, or user-steering pivots.",
 			"Pass the focused spec id or name as current_spec_name so the TUI clearly shows which spec is being updated.",
 			"Keep milestone_content as a concise paragraph unless more detail is useful; the tool adds a ### YYYY-MM-DD HH:mm:ss heading automatically unless one is already present.",
+			"This tool also refreshes the spec widget after appending, so milestones appear immediately in the persistent footer UI. Directly editing MILESTONES.md leaves the widget stale until another refresh happens.",
 		],
 		parameters: Type.Object({
 			current_spec_name: Type.String({ description: "The current focused spec id, path, basename, or title shown in the tool call." }),
@@ -915,6 +1090,7 @@ export default function piSpecsExtension(pi: ExtensionAPI) {
 			const milestonesPath = join(specDir, "MILESTONES.md");
 			if (!(await exists(milestonesPath))) await writeFile(milestonesPath, milestonesTemplate(spec.id, spec.title));
 			await appendFile(milestonesPath, formatMilestoneEntry(content));
+			await updateSpecUI(ctx);
 			return { content: [{ type: "text", text: [`Milestone appended: ${spec.id}`, `File: ${relative(cwd, milestonesPath)}`].join("\n") }], details: { spec: spec.id, path: milestonesPath } };
 		},
 	});
@@ -947,6 +1123,7 @@ export default function piSpecsExtension(pi: ExtensionAPI) {
 			if (params.audit_provider !== undefined) settings.audit_provider = params.audit_provider.trim() || undefined;
 			if (params.audit_model !== undefined) settings.audit_model = params.audit_model.trim() || undefined;
 			await writeSettings(specRoot, settings);
+			await updateSpecUI(ctx);
 			return { content: [{ type: "text", text: [`Specs settings updated`, `audit_provider: ${settings.audit_provider ?? "current-session fallback"}`, `audit_model: ${settings.audit_model ?? "current-session fallback"}`].join("\n") }], details: settings };
 		},
 	});

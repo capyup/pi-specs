@@ -7,3 +7,4 @@ Spec directories may also contain `research/` with purpose-named reports such as
 `MILESTONES.md` records meaningful implementation milestones, failed attempts, setbacks, fixes, validation notes, and decisions without a strict schema.
 When a user steers behavior mid-workflow, update `PRODUCT.md` first when behavior changes, then `TECH.md`, then implementation, tests, and `MILESTONES.md` as needed.
 Before every commit, bump the package patch version by exactly one, for example `0.1.0` -> `0.1.1`.
+When upgrading this Pi package, use `pi update` rather than running `pi install` again.

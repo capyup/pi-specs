@@ -48,6 +48,17 @@ The extension also registers helper tools that the model can call when useful:
 - `spec_append_milestone` - appends a free-form milestone paragraph to the currently focused spec's `MILESTONES.md`.
 - `specs_settings_get` / `specs_settings_update` - read or update future audit provider/model defaults in `SPECS.settings.yaml`.
 
+### Footer Widget
+
+When pi has an interactive UI, `pi-specs` mirrors the `pi-goal` footer/status pattern for focused specs:
+
+- The lower `footer/status` entry shows the currently focused spec id, lifecycle status, title, and research report count.
+- A `compact widget` above the editor shows the focused spec title, artifact readiness for `PRODUCT.md`, `TECH.md`, `MILESTONES.md`, the `research/` report count, and the spec path.
+- If registered specs exist but no spec is focused, the widget explains that the session is unfocused and suggests `/spec-status` or `spec_focus`.
+- If no registry/specs exist, the status and widget stay hidden rather than creating a new state surface.
+
+The widget derives everything from `SPECS.yaml` and files in the spec directory; it does not add a separate database or replace `spec_status`.
+
 ### Command Palette
 
 The canonical slash commands are the extension commands listed above. This package intentionally does not ship prompt templates, because template commands would duplicate the same workflows in the command palette.
@@ -248,9 +259,12 @@ pi-specs/
 ├── README.md
 ├── LICENSE
 ├── extensions/
-│   └── pi-specs.ts
+│   ├── pi-specs.ts
+│   └── widgets/
+│       └── spec-widget.ts
 ├── test/
-│   └── package-shape.test.mjs
+│   ├── package-shape.test.mjs
+│   └── spec-widget.test.mjs
 └── skills/
     ├── specs/
     │   └── SKILL.md
@@ -280,7 +294,8 @@ The tests use Node's built-in test runner with TypeScript type stripping, so no 
 
 - package manifest and pi resource shape
 - skill frontmatter consistency
-- extension shape and spec command registration
+- extension shape, widget registration, and spec command registration
+- widget renderer coverage for focused, completed, unfocused, and width-safe states
 - README/AGENTS coverage for AGENTS discovery, steering alignment, lifecycle tools, research reports, specs-owned questionnaire tools, and progress-free spec scaffolding
 
 Smoke-test local pi loading:

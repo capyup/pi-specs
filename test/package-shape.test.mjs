@@ -61,12 +61,23 @@ test("extension registers spec commands and no legacy progress surface", async (
   assert.match(extension, /formatLocalTimestamp/);
   assert.match(extension, /researchReportBasename/);
   assert.match(extension, /nextAvailablePath/);
+  assert.match(extension, /setStatus\(SPEC_WIDGET_KEY/);
+  assert.match(extension, /setWidget\(SPEC_WIDGET_KEY/);
+  assert.match(extension, /session_start/);
+  assert.match(extension, /session_shutdown/);
+  assert.match(extension, /updateSpecUI/);
+  assert.match(extension, /SpecWidgetComponent/);
   assert.match(extension, /observable or quantitative signals/);
   assert.match(extension, /recommended answer/);
   assert.match(extension, /free-text correction/);
   assert.doesNotMatch(extension, /from ["'].*questionnaire/);
   assert.match(extension, /### \$\{formatLocalTimestamp\(\)\} - Milestone/);
   assertRemovedSurfaceAbsent(extension);
+
+  const widget = await readText("extensions/widgets/spec-widget.ts");
+  assert.match(widget, /renderSpecWidgetLines/);
+  assert.match(widget, /specFooterStatus/);
+  assert.match(widget, /SpecWidgetComponent/);
 
   const prompts = await readdir(new URL("prompts/", root)).catch((err) => err.code === "ENOENT" ? [] : Promise.reject(err));
   assert.deepEqual(prompts.filter((name) => name.endsWith(".md")), []);
@@ -90,6 +101,9 @@ test("README documents commands, validation, and progress-free workflow", async 
     "spec_append_milestone",
     "specs_settings_get",
     "specs_settings_update",
+    "footer/status",
+    "compact widget",
+    "focused spec",
     "AGENTS.md",
     "YYYY-MM-DD-kebab-feature",
     "PRODUCT.md",
