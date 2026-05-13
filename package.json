@@ -1,6 +1,6 @@
 {
   "name": "@capyup/pi-specs",
-  "version": "0.1.13",
+  "version": "0.1.14",
   "description": "Pi package for spec-driven development workflows: PRODUCT.md, TECH.md, implementation, and audits.",
   "type": "module",
   "keywords": [
