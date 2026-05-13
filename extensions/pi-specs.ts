@@ -23,6 +23,12 @@ const COMMANDS = [
 		usage: "/specs-tech <spec path or feature>",
 	},
 	{
+		name: "specs-research",
+		skill: "specs-research",
+		description: "Run purpose-directed research inside a spec workflow",
+		usage: "/specs-research <topic, question, or research purpose>",
+	},
+	{
 		name: "specs-implement",
 		skill: "specs-implement",
 		description: "Implement approved PRODUCT.md and TECH.md specs while keeping them current",
@@ -431,6 +437,56 @@ Map important PRODUCT.md Behavior items to concrete verification:
 `;
 }
 
+function researchProductTemplate(id: string, title: string): string {
+	return `# Product Spec: ${title || id}
+
+Issue: started from research-first scaffold; behavior is not finalized yet.
+
+## Summary
+
+This spec folder was created so research artifacts have a stable home before the product behavior is finalized. Replace this draft with observable behavior once research and user grilling produce enough direction.
+
+## Behavior
+
+1. Draft behavior is intentionally unresolved until research findings and user decisions are synthesized.
+
+## Open questions
+
+- What user-visible behavior should this research inform?
+`;
+}
+
+function slugifyResearchPurpose(value: string): string {
+	const slug = value
+		.normalize("NFKD")
+		.toLowerCase()
+		.replace(/[^a-z0-9._ -]+/g, " ")
+		.trim()
+		.replace(/[._ ]+/g, "-")
+		.replace(/-+/g, "-")
+		.replace(/^-|-$/g, "");
+	return slug || "research";
+}
+
+function researchReportBasename(phase: string | undefined, purpose: string, topic: string): string {
+	const pieces = [today()];
+	const phaseSlug = phase ? slugifyResearchPurpose(phase) : undefined;
+	if (phaseSlug) pieces.push(phaseSlug);
+	pieces.push(slugifyResearchPurpose(purpose || topic));
+	return `${pieces.join("-")}.md`;
+}
+
+async function nextAvailablePath(dir: string, filename: string): Promise<string> {
+	let candidate = join(dir, filename);
+	if (!(await exists(candidate))) return candidate;
+	const stem = filename.endsWith(".md") ? filename.slice(0, -3) : filename;
+	const ext = filename.endsWith(".md") ? ".md" : "";
+	for (let index = 2; ; index++) {
+		candidate = join(dir, `${stem}-${index}${ext}`);
+		if (!(await exists(candidate))) return candidate;
+	}
+}
+
 async function ensureSpecFile(path: string, content: string, created: string[], skipped: string[]) {
 	try {
 		await writeFile(path, content, { flag: "wx" });
@@ -494,9 +550,102 @@ export default function piSpecsExtension(pi: ExtensionAPI) {
 		description: "Show spec-driven development commands from pi-specs",
 		handler: async (_args, ctx) => {
 			const lines = COMMANDS.map((command) => `${command.usage} - ${command.description}`);
-			lines.push("Tools: spec_scaffold, spec_focus, spec_unfocus, spec_status, spec_finish, spec_append_milestone, specs_settings_get, specs_settings_update");
+			lines.push("Tools: spec_scaffold, spec_research, spec_focus, spec_unfocus, spec_status, spec_finish, spec_append_milestone, specs_settings_get, specs_settings_update");
 			lines.push("/specs-help - Show this help");
 			ctx.ui.notify(lines.join("\n"), "info");
+		},
+	});
+
+	pi.registerTool({
+		name: "spec_research",
+		label: "Spec Research",
+		description: "Prepare purpose-directed research inside a spec folder, including research/ report paths and agent guidance.",
+		promptSnippet: "Start research-driven spec work and write a purpose-named research report.",
+		promptGuidelines: [
+			"Use spec_research when research should happen before or during product, tech, implementation, or audit work.",
+			"Treat scaffold as folder name and directory structure first; do not assume generated spec content is final.",
+			"Research may include source/web/docs/code investigation, prototype spikes, benchmarks, experiments, and observable feedback loops.",
+			"Write findings to the returned research report path before making spec, implementation, or audit claims that depend on the research.",
+		],
+		parameters: Type.Object({
+			purpose: Type.String({ description: "Research purpose, e.g. initial-superpowers-mechanisms, product-risk-grill, benchmark-parser-options" }),
+			topic: Type.String({ description: "Question, feature, reference system, experiment, or uncertainty to research." }),
+			spec: Type.Optional(Type.String({ description: "Existing spec id, path, basename, or title. Defaults to focused spec when present." })),
+			id: Type.Optional(Type.String({ description: "Short feature id to scaffold when no target spec exists." })),
+			title: Type.Optional(Type.String({ description: "Human-readable title for a newly scaffolded spec folder." })),
+			phase: Type.Optional(Type.Union([
+				Type.Literal("initial"),
+				Type.Literal("product"),
+				Type.Literal("tech"),
+				Type.Literal("implement"),
+				Type.Literal("audit"),
+				Type.Literal("experiment"),
+			])),
+			instructions: Type.Optional(Type.String({ description: "Additional user or agent instructions for the research." })),
+		}),
+		async execute(_toolCallId, params, _signal, _onUpdate, ctx) {
+			const purpose = params.purpose.trim();
+			const topic = params.topic.trim();
+			if (!purpose) return { content: [{ type: "text", text: "purpose is required." }], isError: true };
+			if (!topic) return { content: [{ type: "text", text: "topic is required." }], isError: true };
+
+			const cwd = resolve(ctx.cwd);
+			const { registry, specRoot, registryPath } = await loadRegistry(ctx.cwd);
+			let spec = findSpec(registry, params.spec);
+			let createdSpec = false;
+
+			if (!spec && params.id) {
+				const error = validateSpecId(params.id);
+				if (error) return { content: [{ type: "text", text: `Invalid spec id: ${error}` }], isError: true };
+				const specId = defaultSpecId(params.id.trim());
+				const specDir = resolve(specRoot, specId);
+				if (!specDir.startsWith(cwd)) return { content: [{ type: "text", text: "Refusing to create files outside the current project." }], isError: true };
+				await mkdir(specDir, { recursive: true });
+				const title = params.title?.trim() || specId;
+				const relativeSpecDir = specPathFromRoot(cwd, specDir);
+				spec = upsertSpec(registry, { id: specId, path: relativeSpecDir, title, status: "draft", focused: false, last_audit: null, updated: today() });
+				setFocused(registry, spec.id);
+				createdSpec = true;
+			}
+
+			if (!spec) {
+				return { content: [{ type: "text", text: "No target spec found. Pass spec to use an existing spec, or id/title to scaffold a new research-first spec folder." }], isError: true };
+			}
+
+			const specDir = resolve(cwd, spec.path);
+			if (!specDir.startsWith(cwd)) return { content: [{ type: "text", text: "Refusing to write research files outside the current project." }], isError: true };
+			const researchDir = join(specDir, "research");
+			await mkdir(researchDir, { recursive: true });
+			const created: string[] = [];
+			const skipped: string[] = [];
+			await ensureSpecFile(join(specDir, "MILESTONES.md"), milestonesTemplate(spec.id, spec.title), created, skipped);
+			if (createdSpec) await ensureSpecFile(join(specDir, "PRODUCT.md"), researchProductTemplate(spec.id, spec.title), created, skipped);
+
+			const reportFile = researchReportBasename(params.phase, purpose, topic);
+			const reportPath = await nextAvailablePath(researchDir, reportFile);
+			const relativeReportPath = relative(cwd, reportPath);
+			const reportTemplate = `# Research Report: ${purpose}\n\nSpec: \`${spec.path}\`\nPhase: ${params.phase ?? "unspecified"}\nTopic: ${topic}\n\n## Purpose\n\n${purpose}\n\n## Method\n\nDescribe sources inspected, experiments run, prototypes built, benchmarks measured, or other observable inquiry methods. For experiments, state the expected observation or measurable signal before interpreting results.\n\n## Observations\n\n- \n\n## Conclusions\n\n- \n\n## Impact on spec or plan\n\n- \n${params.instructions ? `\n## Additional instructions\n\n${params.instructions.trim()}\n` : ""}`;
+			await writeFile(reportPath, reportTemplate, { flag: "wx" });
+
+			spec.updated = today();
+			await saveRegistry(registryPath, registry);
+
+			const lines = [
+				`Spec research prepared: ${spec.id}`,
+				`Spec path: ${spec.path}`,
+				`Research directory: ${relative(cwd, researchDir)}`,
+				`Report path: ${relativeReportPath}`,
+				`Purpose: ${purpose}`,
+				`Topic: ${topic}`,
+				"Guidance:",
+				"- Research before making spec, implementation, or audit claims that depend on evidence.",
+				"- Use sources, code inspection, prototypes, benchmarks, or experiments as appropriate.",
+				"- For experiments, define observable or quantitative signals before drawing conclusions.",
+				"- Write findings to the report path, then update PRODUCT.md first if behavior changes.",
+				created.length ? `Created:\n${created.map((path) => `- ${relative(cwd, path)}`).join("\n")}` : "Created: research report only",
+				skipped.length ? `Skipped existing:\n${skipped.map((path) => `- ${relative(cwd, path)}`).join("\n")}` : "Skipped existing: none",
+			];
+			return { content: [{ type: "text", text: lines.join("\n") }], details: { spec: spec.id, path: spec.path, reportPath: relativeReportPath, createdSpec } };
 		},
 	});
 

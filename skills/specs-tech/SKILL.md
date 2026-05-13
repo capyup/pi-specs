@@ -25,10 +25,11 @@ Read, in order:
 3. relevant source files, tests, and existing patterns
 4. nearby specs for similar changes
 
-Use the minimum code and document inspection needed to ground the plan. Make another pass only when a required file, API, state transition, owner, migration detail, or validation path is missing or unsupported.
+Use the minimum code and document inspection needed to ground the plan. Make another pass only when a required file, API, state transition, owner, migration detail, or validation path is missing or unsupported. If architecture is uncertain, use `/specs-research` or `spec_research` for source-code archaeology, dependency exploration, prototype spikes, benchmark plans, or experiments with observable/quantitative signals.
 
 Identify:
 
+- relevant purpose-named research reports under the spec's `research/` directory, if any
 - entry points for the user flow or API
 - existing types, state, events, and data flow
 - ownership boundaries and persistence/network/migration concerns
@@ -96,7 +97,7 @@ Ground the plan in code. Include file references with line numbers when possible
 - `app/src/settings_view/mod_test.rs:199` - existing round-trip tests to extend.
 ```
 
-Explain current behavior and constraints. Reference `PRODUCT.md` for desired behavior instead of restating every invariant.
+Explain current behavior and constraints. Reference `PRODUCT.md` for desired behavior instead of restating every invariant. Cite any relevant `research/YYYY-MM-DD-<purpose>.md` reports that shaped the technical plan.
 
 ## Proposed changes section
 
@@ -131,7 +132,7 @@ cargo nextest run -p <crate> <test_name>
 ./script/presubmit
 ```
 
-If a behavior cannot be automated, say why and list the manual artifact expected.
+If a behavior cannot be automated, say why and list the manual artifact expected. If validation depends on an experiment or benchmark, describe the measurable signal and save the underlying research report before relying on its conclusion.
 
 ## Keep current during implementation
 

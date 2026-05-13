@@ -21,6 +21,7 @@ Avoid internal implementation details. Put implementation plans, test strategy, 
 ## Drafting posture
 
 - Write the desired outcome first, then behavior invariants. Avoid process-heavy prose that tells implementers how to think instead of what must be true.
+- If claims about target users, reference products, market/customer outcomes, tradeoffs, risks, or measurable success need evidence, use `/specs-research` or `spec_research` before hardening the product spec.
 - Ask for the smallest missing detail only when it materially changes behavior, scope, or risk. Otherwise proceed with clearly labeled assumptions.
 - Use provided or retrieved facts for concrete claims about users, metrics, roadmap status, customer outcomes, product capabilities, deadlines, and compatibility. Do not invent specifics to make the spec sound stronger.
 - Preserve the requested artifact, length, structure, and genre when revising. Improve clarity and correctness without adding extra sections or scope unless the user asked for them.
@@ -28,7 +29,9 @@ Avoid internal implementation details. Put implementation plans, test strategy, 
 
 ## Before writing
 
-Use existing context first. If needed, ask concise questions about:
+Use existing context first. Research is allowed during product spec work: it may include web/docs/source lookup, codebase archaeology, prototype spikes, benchmarks, experiments, or any inquiry with observable or quantitative signals. If research starts before the product spec is clear, create/focus the spec folder first so reports can live under `research/` with purpose-specific filenames.
+
+If needed, ask concise questions about:
 
 - ticket or feature id for the spec directory
 - target users/callers
@@ -115,6 +118,7 @@ When drafting for the user, write the file and summarize:
 
 - path written
 - key behavior decisions captured
+- research reports used or created, if any
 - open questions, if any
 - suggested next step, usually `TECH.md` via the `specs-tech` skill
 

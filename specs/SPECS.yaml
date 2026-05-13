@@ -1,5 +1,5 @@
 version: 1
-focused: 2026-05-01-spec-lifecycle-audit
+focused: 2026-05-13-superpowers-inspired-research-flow
 status_vocabulary:
   - draft
   - ready_for_review
@@ -20,6 +20,13 @@ specs:
     path: specs/2026-05-01-spec-lifecycle-audit
     title: Spec lifecycle registry and isolated audit workflow
     status: completed
+    focused: false
+    last_audit: null
+    updated: 2026-05-13
+  - id: 2026-05-13-superpowers-inspired-research-flow
+    path: specs/2026-05-13-superpowers-inspired-research-flow
+    title: Superpowers-inspired research, grilling, and audit flow
+    status: draft
     focused: true
     last_audit: null
     updated: 2026-05-13

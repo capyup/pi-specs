@@ -46,19 +46,22 @@ test("skills have matching frontmatter names", async () => {
 
 test("extension registers spec commands and no legacy progress surface", async () => {
   const extension = await readText("extensions/pi-specs.ts");
-  for (const command of ["specs", "specs-product", "specs-tech", "specs-implement", "specs-audit", "specs-help"]) {
+  for (const command of ["specs", "specs-product", "specs-tech", "specs-research", "specs-implement", "specs-audit", "specs-help"]) {
     assert.match(extension, new RegExp(command));
   }
   assert.match(extension, /specs\/SPECS\.yaml/);
   assert.match(extension, /focused spec/);
   assert.match(extension, /MILESTONES\.md/);
-  for (const tool of ["spec_scaffold", "spec_focus", "spec_unfocus", "spec_status", "spec_finish", "spec_append_milestone", "specs_settings_get", "specs_settings_update"]) {
+  for (const tool of ["spec_scaffold", "spec_research", "spec_focus", "spec_unfocus", "spec_status", "spec_finish", "spec_append_milestone", "specs_settings_get", "specs_settings_update"]) {
     assert.match(extension, new RegExp(tool));
   }
   assert.doesNotMatch(extension, new RegExp("append_" + "spec_milestones"));
   assert.match(extension, /current_spec_name/);
   assert.match(extension, /milestone_content/);
   assert.match(extension, /formatLocalTimestamp/);
+  assert.match(extension, /researchReportBasename/);
+  assert.match(extension, /nextAvailablePath/);
+  assert.match(extension, /observable or quantitative signals/);
   assert.match(extension, /### \$\{formatLocalTimestamp\(\)\} - Milestone/);
   assertRemovedSurfaceAbsent(extension);
 
@@ -70,7 +73,9 @@ test("README documents commands, validation, and progress-free workflow", async 
   const readme = await readText("README.md");
   for (const snippet of [
     "/specs <feature, issue, or goal>",
+    "/specs-research <topic, question, or research purpose>",
     "spec_scaffold",
+    "spec_research",
     "spec_focus",
     "spec_unfocus",
     "spec_status",
@@ -83,6 +88,8 @@ test("README documents commands, validation, and progress-free workflow", async 
     "PRODUCT.md",
     "TECH.md",
     "MILESTONES.md",
+    "research/YYYY-MM-DD-<purpose>.md",
+    "observable or quantitative",
     "npm test",
   ]) {
     assert.match(readme, new RegExp(snippet.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
@@ -105,6 +112,13 @@ test("AGENTS and skills document convention discovery and steering alignment", a
     if (["specs", "specs-implement"].includes(skill)) assert.match(text, /spec_append_milestone/);
     assertRemovedSurfaceAbsent(text);
   }
+  const researchSkill = await readText("skills/specs-research/SKILL.md");
+  assert.match(researchSkill, /spec_research/);
+  assert.match(researchSkill, /research\//);
+  assert.match(researchSkill, /observable|quantitative/);
+  assert.match(researchSkill, /spec_append_milestone/);
+  assertRemovedSurfaceAbsent(researchSkill);
+
   for (const skill of ["specs-implement", "specs-audit"]) {
     const text = await readText(`skills/${skill}/SKILL.md`);
     assert.match(text, /without arguments/);

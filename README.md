@@ -2,7 +2,7 @@
 
 > Moved to `@capyup` and published to npm in `0.1.7`. Old `git:github.com/lulucatdev/pi-spec-driven-dev` and `git:github.com/lulucatdev/pi-specs` URLs both redirect on GitHub. New installs should prefer `pi install npm:@capyup/pi-specs`.
 
-A pi package for spec-driven development. It turns a feature idea into a reviewed `PRODUCT.md`, a codebase-grounded `TECH.md`, and an implementation that keeps specs, code, and tests aligned.
+A pi package for research-driven spec development. It turns a feature idea into purpose-directed research, a reviewed `PRODUCT.md`, a codebase-grounded `TECH.md`, and an implementation that keeps specs, code, research evidence, and tests aligned.
 
 This package is adapted from Warp's internal spec-driven workflow and generalized for repositories that benefit from PRD-style product specs, technical design docs, and agent-friendly implementation plans.
 
@@ -15,6 +15,7 @@ This package is adapted from Warp's internal spec-driven workflow and generalize
 - `specs` - end-to-end spec-first workflow: decide whether specs are warranted, write specs, implement, and verify.
 - `specs-product` - write or revise a behavior-first `PRODUCT.md` from the user/caller perspective.
 - `specs-tech` - write or revise a codebase-grounded `TECH.md` with implementation plan, risks, and validation.
+- `specs-research` - run purpose-directed research inside a spec workflow, including source/code investigation, prototypes, benchmarks, experiments, and observable feedback loops.
 - `specs-implement` - implement approved specs while keeping specs, code, and tests synchronized.
 - `specs-audit` - audit a repository's spec workflow, spec quality, or spec/code/test drift.
 
@@ -26,6 +27,7 @@ The extension registers direct commands so you do not have to remember skill nam
 /specs <feature, issue, or goal>
 /specs-product <ticket/feature and desired behavior>
 /specs-tech <spec path or feature>
+/specs-research <topic, question, or research purpose>
 /specs-implement <spec directory or feature>
 /specs-audit [spec directory, issue, or area]
 /specs-help
@@ -36,6 +38,7 @@ The extension registers direct commands so you do not have to remember skill nam
 The extension also registers helper tools that the model can call when useful:
 
 - `spec_scaffold` - creates `PRODUCT.md`, `MILESTONES.md`, optional `TECH.md`, and a `SPECS.yaml` registry entry.
+- `spec_research` - creates or focuses a spec folder, prepares `research/`, creates a purpose-named research report, and returns guidance for the agent.
 - `spec_focus` / `spec_unfocus` - set or clear the currently focused spec.
 - `spec_status` - summarizes lifecycle state, artifact presence, latest audit metadata, and focus state.
 - `spec_finish` - runs local completion checks and marks a spec completed; audit execution is deferred to a future `spec_audit` flow.
@@ -100,6 +103,12 @@ Write a technical plan from an existing product spec:
 /specs-tech specs/GH408
 ```
 
+Run research before or during spec work:
+
+```text
+/specs-research initial-superpowers-mechanisms for a lightweight research-driven spec workflow
+```
+
 Implement approved specs:
 
 ```text
@@ -117,14 +126,15 @@ Audit an existing project or feature:
 1. **Start from an issue or feature idea.** Use `/specs` when the change is substantial, ambiguous, risky, or likely to involve multiple files.
 2. **Discover conventions first.** Read `AGENTS.md`; if no spec root is documented, prefer existing `specs`, `docs/specs`, `.pi/specs`, then any nested `specs`, then create `./specs` and record the convention in `AGENTS.md`.
 3. **Confirm new conventions.** Before finalizing an inferred convention, tell the user the planned spec root and date-prefixed directory name, then ask whether to proceed or adjust.
-4. **Write `PRODUCT.md` first.** Capture observable behavior as numbered, testable invariants. Keep implementation details out.
-5. **Write `TECH.md` when warranted.** Read the product spec and current source code. Ground the plan in real files, types, state, data flow, risks, and validation.
-6. **Implement from approved specs.** Treat `PRODUCT.md` as behavior source of truth and `TECH.md` as the implementation plan.
-7. **Handle steering top-down.** If the user steers mid-workflow and behavior changes, update `PRODUCT.md`, then `TECH.md`, then implementation/tests as needed.
-8. **Record implementation milestones.** Update `MILESTONES.md` after meaningful phase changes, including successes, setbacks, failed attempts, fixes, validation notes, and decisions.
-9. **Keep specs current.** If implementation changes behavior, architecture, or validation, update the relevant spec in the same PR.
-10. **Verify against behavior.** Tests and manual checks should map back to the behavior invariants in the product spec.
-11. **Audit before finishing.** Use `/specs-audit` when you want a final check for spec/code/test drift.
+4. **Research when evidence would change direction.** Use `/specs-research` or `spec_research` to create/focus the spec folder, write purpose-named reports under `research/`, and ground decisions in sources, code, prototypes, benchmarks, or experiments.
+5. **Write `PRODUCT.md` first.** Capture observable behavior as numbered, testable invariants. Keep implementation details out.
+6. **Write `TECH.md` when warranted.** Read the product spec, current source code, and relevant research reports. Ground the plan in real files, types, state, data flow, risks, and validation.
+7. **Implement from approved specs.** Treat `PRODUCT.md` as behavior source of truth and `TECH.md` as the implementation plan; launch more research if implementation exposes uncertainty or measurable tradeoffs.
+8. **Handle steering top-down.** If the user steers mid-workflow and behavior changes, update `PRODUCT.md`, then `TECH.md`, then implementation/tests as needed.
+9. **Record implementation milestones.** Update `MILESTONES.md` after meaningful phase changes, including successes, setbacks, failed attempts, fixes, validation notes, and decisions.
+10. **Keep specs current.** If implementation changes behavior, architecture, or validation, update the relevant spec in the same PR.
+11. **Verify against behavior.** Tests and manual checks should map back to the behavior invariants in the product spec.
+12. **Audit before finishing.** Use `/specs-audit` when you want a final check for spec/code/test drift.
 
 ## Default Spec Layout
 
@@ -134,6 +144,7 @@ When a repository does not already have a convention, this package uses:
 specs/YYYY-MM-DD-kebab-feature/PRODUCT.md
 specs/YYYY-MM-DD-kebab-feature/TECH.md
 specs/YYYY-MM-DD-kebab-feature/MILESTONES.md
+specs/YYYY-MM-DD-kebab-feature/research/YYYY-MM-DD-<purpose>.md
 ```
 
 Examples:
@@ -157,6 +168,12 @@ A good `PRODUCT.md` describes behavior from the consumer's point of view:
 - Data models: what readers and writers can assume.
 
 The core is a numbered `Behavior` section with testable invariants. It should cover the happy path, states, transitions, inputs, outputs, errors, empty states, cancellation, compatibility, accessibility, and edge cases that are easy to miss.
+
+## What Makes a Good Research Report
+
+A good `research/YYYY-MM-DD-<purpose>.md` captures evidence before a product, technical, implementation, or audit decision changes direction. Research can mean literature or web review, source/code investigation, prototype spikes, benchmarks, transcript comparisons, controlled experiments, or any inquiry that can produce observations or measurable signals.
+
+It should record the purpose, method, observations, conclusions, impact on the spec or plan, and remaining uncertainty. For experiments, state the hypothesis or question, the observable or quantitative signal, the setup, the result, and limits of interpretation.
 
 ## What Makes a Good Tech Spec
 
@@ -230,6 +247,8 @@ pi-specs/
     │   └── SKILL.md
     ├── specs-implement/
     │   └── SKILL.md
+    ├── specs-research/
+    │   └── SKILL.md
     ├── specs-product/
     │   └── SKILL.md
     └── specs-tech/
@@ -249,7 +268,7 @@ The tests use Node's built-in test runner with TypeScript type stripping, so no 
 - package manifest and pi resource shape
 - skill frontmatter consistency
 - extension shape and spec command registration
-- README/AGENTS coverage for AGENTS discovery, steering alignment, lifecycle tools, and progress-free spec scaffolding
+- README/AGENTS coverage for AGENTS discovery, steering alignment, lifecycle tools, research reports, and progress-free spec scaffolding
 
 Smoke-test local pi loading:
 

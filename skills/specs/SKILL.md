@@ -10,8 +10,10 @@ Use this skill to drive a feature from intent to implementation through checked-
 ## First principles
 
 - Specs are working inputs for implementation and review, not ceremony.
+- Spec-driven work can also be research-driven: use purpose-directed research when evidence, experiments, benchmarks, prototypes, or source/code investigation would reduce uncertainty.
 - `PRODUCT.md` owns observable behavior from the user/caller perspective.
 - `TECH.md` owns implementation shape, codebase context, risks, and validation.
+- `research/` may contain purpose-named research reports for literature/code review, experiments, benchmarks, prototypes, or audit evidence gathered before or during spec work.
 - `MILESTONES.md` owns free-form implementation history: milestones, setbacks, failed attempts, fixes, validation notes, and decisions.
 - Code, tests, and specs should describe the same feature by the time the PR ships.
 - Agent/session-local planning is enough for execution state; this package does not create durable progress files.
@@ -70,6 +72,8 @@ Use a ticket id when available (`APP-1234`, `GH408`, `JIRA-123`) only if the pro
 
 ### 1. Capture intent and shape
 
+If the work is ambiguous or evidence would change the direction, use `/specs-research` or the `spec_research` tool to create/focus a spec folder and write a purpose-named research report before hardening behavior. Research can include source/web/docs lookup, code archaeology, prototypes, benchmarks, or experiments with observable/quantitative signals.
+
 Clarify only what is needed to avoid guessing:
 
 - feature summary and target users/callers
@@ -83,7 +87,7 @@ If the user already gave enough context, proceed instead of over-interviewing.
 
 ### 2. Write the product spec first
 
-Use the `specs-product` skill. The product spec should define:
+Use the `specs-product` skill. If claims about users, reference systems, tradeoffs, risks, or measurable outcomes are uncertain, launch additional research instead of inventing certainty. The product spec should define:
 
 - what problem is being solved
 - desired user/caller experience
@@ -95,7 +99,7 @@ Keep implementation details out unless they are visible to the consumer of the s
 
 ### 3. Write the tech spec when warranted
 
-Use the `specs-tech` skill when implementation is non-trivial. Read the product spec and relevant source code before drafting. The tech spec should define:
+Use the `specs-tech` skill when implementation is non-trivial. Read the product spec and relevant source code before drafting. Use additional research for architecture spikes, dependency exploration, benchmarks, or experiments when the technical path is uncertain. The tech spec should define:
 
 - current system context with file references
 - proposed module/API/state/data-flow changes
@@ -107,7 +111,7 @@ It is acceptable to prototype first if the architecture is too uncertain, then w
 
 ### 4. Implement approved specs
 
-Use the `specs-implement` skill once the specs are approved enough to build. During implementation:
+Use the `specs-implement` skill once the specs are approved enough to build. If implementation reveals surprising behavior, unclear requirements, performance tradeoffs, or a testable hypothesis, launch additional research and record the report before changing direction. During implementation:
 
 - treat `PRODUCT.md` as the behavior source of truth
 - treat `TECH.md` as the implementation plan, not an immutable contract
@@ -137,6 +141,7 @@ If the extension from this package is installed, the user can invoke:
 - `/specs <feature>` - start the full workflow
 - `/specs-product <feature>` - draft or revise `PRODUCT.md`
 - `/specs-tech <path-or-feature>` - draft or revise `TECH.md`
+- `/specs-research <topic, question, or research purpose>` - run purpose-directed research inside a spec workflow
 - `/specs-implement <spec-dir>` - implement approved specs
 - `/specs-audit [area]` - audit spec workflow or spec/code alignment
 - `/specs-help` - list commands
@@ -144,6 +149,7 @@ If the extension from this package is installed, the user can invoke:
 The extension also exposes tools:
 
 - `spec_scaffold` - create `PRODUCT.md`, `MILESTONES.md`, optional `TECH.md`, and a registry entry without overwriting files
+- `spec_research` - create/focus a spec folder, prepare `research/`, and return a purpose-named report path plus research guidance.
 - `spec_focus` / `spec_unfocus` - set or clear the focused spec
 - `spec_status` - summarize lifecycle state and artifact readiness
 - `spec_finish` - run local completion checks and mark the spec completed when required artifacts exist

@@ -30,6 +30,7 @@ Treat:
 - `PRODUCT.md` as the source of truth for observable behavior
 - `TECH.md` as the source of truth for implementation shape, sequencing, risks, and validation
 - `MILESTONES.md` as the free-form record of meaningful implementation events
+- `research/` reports as durable evidence for research, experiments, prototypes, benchmarks, or source/code investigation that shaped the spec or plan
 
 Extract:
 
@@ -40,7 +41,7 @@ Extract:
 
 ## Inspect current code
 
-Before editing, read the relevant files named in `TECH.md` and nearby tests. Read existing `MILESTONES.md` when present to understand prior attempts and decisions. Verify the tech spec still matches the current codebase. If it is stale, update it before or alongside implementation.
+Before editing, read the relevant files named in `TECH.md`, nearby tests, and any cited `research/` reports. Read existing `MILESTONES.md` when present to understand prior attempts and decisions. Verify the tech spec still matches the current codebase. If it is stale, update it before or alongside implementation.
 
 ## Plan implementation steps
 
@@ -58,12 +59,14 @@ Avoid vague steps like "implement feature" or "add validation". If needed, recor
 During implementation:
 
 - preserve unrelated user changes in the worktree
+- use `/specs-research` or `spec_research` when implementation exposes uncertainty, surprising test results, performance tradeoffs, unclear behavior, or a testable hypothesis
 - keep changes focused on the spec scope
 - prefer existing patterns over novel abstractions
 - add feature flags for risky or staged rollout when the project uses them
 - update tests as behavior lands
 - use `spec_append_milestone` when available to update `MILESTONES.md` after meaningful phase changes, setbacks, failed attempts, fixes, validation notes, and decisions
 - update specs immediately when behavior or architecture changes
+- write a purpose-named research report for non-trivial experiments, benchmarks, prototypes, or investigations whose observations change the implementation plan
 
 Do not silently diverge from the product spec. If the user steers mid-workflow or a behavior invariant is impossible or undesirable after inspecting the code, update in order: `PRODUCT.md` for behavior, `TECH.md` for implementation shape, then code/tests and `MILESTONES.md`.
 
@@ -104,7 +107,7 @@ Prefer targeted verification first, then broader checks:
 
 Map verification back to the product behavior numbers. If a behavior is not verified, explain the residual risk.
 
-Run the most relevant validation available after changes: targeted tests for changed behavior, type checks or lint checks when applicable, build checks for affected packages, and a minimal smoke test when full validation is too expensive. If validation cannot be run, explain why and name the next best check.
+Run the most relevant validation available after changes: targeted tests for changed behavior, type checks or lint checks when applicable, build checks for affected packages, and a minimal smoke test when full validation is too expensive. If validation depends on research or an experiment, report the observable/quantitative signal and the research report path. If validation cannot be run, explain why and name the next best check.
 
 ## Stop conditions
 
