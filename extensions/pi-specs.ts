@@ -82,7 +82,14 @@ type SpecSettings = {
 	language?: string;
 };
 
-function buildSkillPrompt(skill: string, args: string, usage: string, settings: SpecSettings = {}): string {
+interface SpecHint {
+	status: string;
+	milestones: boolean;
+	product: boolean;
+	tech: boolean;
+}
+
+function buildSkillPrompt(skill: string, args: string, usage: string, settings: SpecSettings = {}, specHint?: SpecHint): string {
 	const trimmed = args.trim();
 	const noArgsInstruction = [
 		`No arguments were provided for ${usage}.`,
@@ -99,13 +106,23 @@ function buildSkillPrompt(skill: string, args: string, usage: string, settings: 
 	if (settings.language) {
 		lines.push(`The user prefers to communicate and write documentation in: ${settings.language}.`);
 	}
+	if (specHint && specHint.status === "draft" && specHint.milestones) {
+		lines.push(`Current spec status is \"draft\" but milestones have already been recorded. The status should reflect actual progress.`);
+	}
 	return lines.join("\n\n");
 }
 
 async function sendSkillMessage(pi: ExtensionAPI, ctx: ExtensionCommandContext, skill: string, args: string, usage: string) {
 	const { specRoot } = await resolveSpecRoot(ctx.cwd);
 	const settings = await readSettings(specRoot);
-	const prompt = buildSkillPrompt(skill, args, usage, settings);
+	const { registry } = await loadRegistry(ctx.cwd);
+	const spec = findSpec(registry, undefined);
+	let specHint: SpecHint | undefined;
+	if (spec) {
+		const state = await artifactState(resolve(ctx.cwd, spec.path));
+		specHint = { status: spec.status, milestones: state.milestones, product: state.product, tech: state.tech };
+	}
+	const prompt = buildSkillPrompt(skill, args, usage, settings, specHint);
 	if (ctx.isIdle()) {
 		pi.sendUserMessage(prompt);
 		return;
@@ -1148,7 +1165,7 @@ export default function piSpecsExtension(pi: ExtensionAPI) {
 			milestone_content: Type.String({ description: "Free-form milestone paragraph to append to MILESTONES.md." }),
 		}),
 		async execute(_toolCallId, params, _signal, _onUpdate, ctx) {
-			const { spec } = await resolveSpecTarget(ctx.cwd, undefined);
+			const { registry, registryPath, spec } = await resolveSpecTarget(ctx.cwd, undefined);
 			if (!matchesFocusedSpecName(params.current_spec_name, spec)) {
 				return { content: [{ type: "text", text: `Focused spec is ${spec.id}; got current_spec_name=${params.current_spec_name}.` }], isError: true };
 			}
@@ -1159,8 +1176,15 @@ export default function piSpecsExtension(pi: ExtensionAPI) {
 			if (!specDir.startsWith(cwd)) return { content: [{ type: "text", text: "Refusing to append milestones outside the current project." }], isError: true };
 			await mkdir(specDir, { recursive: true });
 			const milestonesPath = join(specDir, "MILESTONES.md");
-			if (!(await exists(milestonesPath))) await writeFile(milestonesPath, milestonesTemplate(spec.id, spec.title));
+			const hadMilestones = await exists(milestonesPath);
+			if (!hadMilestones) await writeFile(milestonesPath, milestonesTemplate(spec.id, spec.title));
 			await appendFile(milestonesPath, formatMilestoneEntry(content));
+			// Auto-advance: draft → implementing when milestones already existed before this append
+			if (spec.status === "draft" && hadMilestones) {
+				spec.status = "implementing";
+				spec.updated = today();
+				await saveRegistry(registryPath, registry);
+			}
 			await updateSpecUI(ctx);
 			return { content: [{ type: "text", text: [`Milestone appended: ${spec.id}`, `File: ${relative(cwd, milestonesPath)}`].join("\n") }], details: { spec: spec.id, path: milestonesPath } };
 		},
