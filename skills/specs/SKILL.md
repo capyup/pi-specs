@@ -72,7 +72,7 @@ Use a ticket id when available (`APP-1234`, `GH408`, `JIRA-123`) only if the pro
 
 ### 1. Capture intent and shape
 
-If the work is ambiguous or evidence would change the direction, use `/specs-research` or the `spec_research` tool to create/focus a spec folder and write a purpose-named research report before hardening behavior. Research can include source/web/docs lookup, code archaeology, prototypes, benchmarks, or experiments with observable/quantitative signals.
+If the work is ambiguous or evidence would change the direction, use `/specs-research` or the `spec_research` tool to create/focus a spec folder and write a purpose-named research report before hardening behavior. Research can include source/web/docs lookup, code archaeology, prototypes, benchmarks, or experiments with observable/quantitative signals. During research-driven grilling, use `spec_questionaire` / `spec_questionnaire` to ask one decision branch at a time with a recommended answer and Q&A records.
 
 Clarify only what is needed to avoid guessing:
 

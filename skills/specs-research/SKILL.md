@@ -20,9 +20,10 @@ Use research to drive spec formation and implementation decisions. Research is b
 5. **Pick methods.** Use the least sufficient mix of sources, repo inspection, docs, experiments, prototypes, benchmarks, or transcript comparisons. Do not restrict research to web search.
 6. **Predeclare signals for experiments.** If running an experiment, state the observable, statistical, or quantitative signal before interpreting results.
 7. **Write the report.** Save findings to the report path returned by `spec_research`. Include sources/method, observations, conclusions, and impact on the spec or plan.
-8. **Grill after evidence.** If product direction is still uncertain, ask adversarial but collaborative questions that pressure-test value, scope, risks, and hidden assumptions.
-9. **Update specs top-down.** If research or grilling changes observable behavior, update `PRODUCT.md` first. Update `TECH.md` only when implementation shape, risks, or validation change.
-10. **Record meaningful milestones.** Use `spec_append_milestone` when research starts a new phase, resolves uncertainty, changes direction, or produces evidence that affects future work.
+8. **Start the research-question loop.** Use the report to ask the first decision-driving grilling question. Do not stop after one shallow clarification.
+9. **Continue the loop.** After each answer, decide whether the next best move is more research, another grilling question, or synthesis. Repeat until shared understanding is reached, the user explicitly stops, or remaining uncertainty is clearly documented.
+10. **Update specs top-down.** If research or grilling changes observable behavior, update `PRODUCT.md` first. Update `TECH.md` only when implementation shape, risks, or validation change.
+11. **Record meaningful milestones.** Use `spec_append_milestone` when research starts a new phase, resolves uncertainty, changes direction, or produces evidence that affects future work.
 
 ## Research Report Guidance
 
@@ -43,7 +44,19 @@ For experiments, include:
 - result
 - interpretation and limits
 
-## Grilling Style
+## Grilling Procedure
+
+This integrates the `grill-me` workflow into spec research. The agent is expected to be agentic: keep walking the decision tree until the plan holds together, without needing a durable state machine.
+
+1. **Identify the target.** Name the active plan, spec, research question, or design assumption being grilled. Prefer the focused spec when the user has not specified another target.
+2. **Explore before asking.** If a question can be answered by reading files, searching docs, running commands, or inspecting prior research reports, do that instead of asking the user.
+3. **Ask one decision branch at a time.** Use `spec_questionaire` or `spec_questionnaire` when available. A single tool call may include a small cluster of tightly related branch questions, but do not dump an intake form.
+4. **Provide a recommended answer.** Every grilling question should include a concrete recommended answer as an option, so the user can accept, reject, or modify it.
+5. **Resolve dependencies in order.** Do not jump to downstream details until the current branch is settled enough to reason about the next branch.
+6. **Loop.** After the answer, explicitly choose: research a dependency, ask the next adversarial question, update the spec, or synthesize. Continue until shared understanding is reached.
+7. **Stop only for real stop conditions.** Stop when the user explicitly ends the session, confirms the plan holds together, or the remaining risks/open questions are clearly written down.
+
+## Questioning Style
 
 Default to adversarial but collaborative questioning. Ask fewer, sharper questions. Challenge:
 
@@ -53,7 +66,7 @@ Default to adversarial but collaborative questioning. Ask fewer, sharper questio
 - whether success can be observed or measured
 - what evidence would change the decision
 
-Do not turn grilling into a long intake form. Ask questions that change the spec or plan.
+Do not turn grilling into a long intake form. Ask questions that change the spec or plan. Do not ask one ceremonial question and then declare the research phase complete.
 
 ## Boundaries
 

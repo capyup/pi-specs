@@ -4,9 +4,12 @@ Product spec: `specs/2026-05-13-superpowers-inspired-research-flow/PRODUCT.md`
 
 ## Context
 
-- `extensions/pi-specs.ts:6` defines the slash-command registry for `/specs`, `/specs-product`, `/specs-tech`, `/specs-implement`, and `/specs-audit`.
+- `extensions/pi-specs.ts:6` defines the slash-command registry for `/specs`, `/specs-product`, `/specs-tech`, `/specs-research`, `/specs-implement`, and `/specs-audit`; it should add `/specs-grill-me`.
 - `extensions/pi-specs.ts:485` registers commands by sending a skill prompt through `sendSkillMessage`, so `/specs-research` can follow the same command-to-skill pattern.
-- `extensions/pi-specs.ts:493` registers `/specs-help`; it should list the new command and research tool.
+- `extensions/pi-specs.ts:493` registers `/specs-help`; it should list the new command, research tool, and specs-owned questionnaire/grilling tools.
+- `extensions/pi-specs.ts` already implements the questionnaire flow using the built-in `ctx.ui.select` and `ctx.ui.input` APIs, so the specs questionnaire tools are self-contained and do not depend on any external questionnaire plugin.
+- `/Users/lucas/.local/lib/node_modules/@capyup/pi-basic-tools/extensions/questionnaire.ts` provided behavior inspiration only: suggested options, recommended option, and free-text answers.
+- `/Users/lucas/.agents/skills/grill-me/SKILL.md` provides the grilling behavior to integrate: identify the target, ask one branch at a time, include a recommended answer, resolve dependencies in order, explore code when possible, and continue until shared understanding.
 - `extensions/pi-specs.ts:503` registers `spec_scaffold`, which currently creates `PRODUCT.md`, `MILESTONES.md`, optional `TECH.md`, and a registry entry. `/specs-research` needs a lighter folder-first scaffold path that can create the spec directory and `research/` before final spec content exists.
 - `extensions/pi-specs.ts:369` and `extensions/pi-specs.ts:402` define placeholder templates for `PRODUCT.md` and `TECH.md`; research-first scaffolding should not imply those placeholders are final or approved.
 - `extensions/pi-specs.ts:635` registers `spec_append_milestone`; research setup and completed research reports should use milestone entries for durable phase history.
@@ -115,7 +118,79 @@ Do not change existing `spec_scaffold` behavior unless implementation convenienc
 
 `spec_scaffold` can remain the full conventional scaffold tool for users who already know the feature shape. `spec_research` is the earlier, folder-first entrypoint for pre-spec research.
 
-### 6. Prompt and documentation updates
+### 6. Add specs-owned questionnaire/grilling tools
+
+Port the installed questionnaire tool into `extensions/pi-specs.ts` as specs-owned tools:
+
+- `spec_questionaire` - compatibility spelling requested by the user.
+- `spec_questionnaire` - canonical spelling alias with the same behavior.
+
+Use a shared registration helper so both tool names call the same implementation.
+
+Recommended parameter shape:
+
+```ts
+parameters: Type.Object({
+  questions: Type.Array(Type.Object({
+    id: Type.String({ description: "Short identifier, e.g. scope, risk, success-signal" }),
+    question: Type.String({ description: "The adversarial question or decision to ask." }),
+    context: Type.Optional(Type.String({ description: "Why this matters, including tradeoffs or downstream dependency." })),
+    options: Type.Optional(Type.Array(Type.String({ description: "Suggested answer option." }))),
+    recommended: Type.Optional(Type.Integer({ minimum: 0, description: "0-based recommended option." })),
+  }), { minItems: 1 }),
+})
+```
+
+Behavior:
+
+1. Require UI (`ctx.hasUI`) and return a cancelled result when UI is unavailable.
+2. Normalize duplicate or blank ids.
+3. Show options plus free-text input.
+4. Respect `recommended` by defaulting the cursor to that option.
+5. Support a multi-question tabbed UI, but prompt guidance should recommend one decision branch at a time or a small cluster of tightly related branch questions.
+6. Return Q&A records with `id`, `question`, `answer`, and `wasCustom` so the agent can synthesize and update specs.
+
+The tool should be specs-owned even if a generic questionnaire plugin is installed, so `/specs-research` agents can reliably call a domain-specific tool with grilling-oriented guidance.
+
+### 7. Add `/specs-grill-me`
+
+Create `skills/specs-grill-me/SKILL.md` and register a command:
+
+```ts
+{
+  name: "specs-grill-me",
+  skill: "specs-grill-me",
+  description: "Grill the current spec design or progress with adversarial questions",
+  usage: "/specs-grill-me [spec id, path, or focus area]",
+}
+```
+
+Behavior:
+
+1. With no arguments, read `AGENTS.md` and `specs/SPECS.yaml`, then use the focused spec.
+2. Read the target spec's `PRODUCT.md`, `TECH.md` when present, `MILESTONES.md`, and relevant `research/` reports.
+3. Identify the active target: product design, technical plan, implementation progress, research evidence, validation, or open decision.
+4. Use `spec_questionaire` / `spec_questionnaire` to ask one decision branch or a small cluster of tightly related branch questions.
+5. Include a recommended answer with every question.
+6. Continue across multiple turns until shared understanding is reached, the user stops, or remaining risks/open questions are explicitly written down.
+7. Update `PRODUCT.md` first when answers change behavior; update `TECH.md` when answers change implementation shape; append milestones for meaningful decisions.
+
+### 8. Strengthen research/grill prompt loop
+
+Update `skills/specs-research/SKILL.md` so the agent does not stop after one shallow question. Integrate the `grill-me` skill behavior directly:
+
+1. Identify the active target plan/spec/research question.
+2. Research enough to ask a better question.
+3. Ask one decision branch at a time, using `spec_questionaire` / `spec_questionnaire` when useful.
+4. Include a recommended answer with each question so the user can accept, reject, or modify.
+5. Resolve dependencies in order; do not jump to downstream details first.
+6. Explore code/files/tools when the answer can be discovered without asking the user.
+7. After each answer, decide whether the next best step is more research, another grilling question, or synthesis.
+8. Continue until shared understanding is reached, the user explicitly stops, or the remaining uncertainty is clearly documented.
+
+This is prompt discipline, not a state machine. Do not create durable loop state beyond reports, spec updates, and milestones.
+
+### 9. Prompt and documentation updates
 
 Update `skills/specs/SKILL.md`:
 
@@ -142,35 +217,41 @@ Update `README.md`:
 
 - Document `/specs-research`.
 - Document `spec_research`.
+- Document `/specs-grill-me`.
+- Document `spec_questionaire` and `spec_questionnaire` as built-in specs tools, not external plugin dependencies.
 - Document `research/YYYY-MM-DD-<purpose>.md` report files.
 - Explain that research may be literature/code review or experiments with observable/quantitative outcomes.
+- Explain that `/specs-research` should normally run a multi-round research/question/synthesis loop rather than asking one token clarifying question.
 
-### 7. Registry and lifecycle behavior
+### 10. Registry and lifecycle behavior
 
 `SPECS.yaml` does not need a new status or research database. Research artifacts are files under the spec directory and are discovered by path, not tracked as state.
 
 `spec_status` may optionally add a line showing the count or latest file under `research/`, but this is not required for the first implementation. If added, tests should cover it.
 
-### 8. Implementation sequence
+### 11. Implementation sequence
 
-1. Add `skills/specs-research/SKILL.md`.
-2. Add `/specs-research` to `COMMANDS` and `/specs-help` output.
-3. Add helpers for research slugs/report paths and folder-first scaffold behavior.
-4. Register `spec_research` with the parameter shape above.
-5. Update existing skill docs to mention research availability across phases.
-6. Update `README.md` and tests.
-7. Run `npm test`.
-8. Optionally run `npm run test:smoke` if local `pi` smoke tests are available.
+1. Add `/specs-grill-me` to `COMMANDS`.
+2. Add `skills/specs-grill-me/SKILL.md`.
+3. Ensure `spec_questionaire` and `spec_questionnaire` remain implemented inside `extensions/pi-specs.ts` with built-in UI APIs, not delegated to an external plugin.
+4. Update `/specs-help`, README, and package-shape tests for the new command and built-in questionnaire guarantee.
+5. Run `npm test`.
+6. Optionally run `npm run test:smoke` if local `pi` smoke tests are available.
+
+The previously implemented `/specs-research` and `spec_research` work remains in place.
 
 ## Testing and validation
 
 - Behavior #1/#3: `test/package-shape.test.mjs` should assert `/specs-research` is registered and documented.
 - Behavior #2/#4: tests should assert `spec_research` appears in the extension and README/tool documentation.
 - Behavior #5/#6/#7: add tests or extension shape checks for folder-first scaffold logic: `research/` directory creation, milestone creation, and no forced `TECH.md` creation.
+- Behavior #17/#18: tests should assert `spec_questionaire` and `spec_questionnaire` are registered, documented, mention recommended answers/free-text Q&A records, and are implemented in `extensions/pi-specs.ts` without importing an external questionnaire package.
+- Behavior #20: tests should assert `/specs-grill-me` and `skills/specs-grill-me/SKILL.md` exist and document focused-spec resolution plus grilling current design/progress.
 - Behavior #10/#11/#12: add unit or shape tests for purpose-specific report path generation and no overwrite behavior.
 - Behavior #21/#22/#23: docs tests should assert research language includes experiments, observable/quantitative signals, and iteration loops.
-- Behavior #24: docs tests should assert product, tech, and implementation skills mention launching additional research.
-- Behavior #25: no new persistent research status file should be introduced; tests should continue to reject legacy progress surfaces.
+- Behavior #27: docs tests should assert product, tech, and implementation skills mention launching additional research.
+- Behavior #28: no new persistent research status file should be introduced; tests should continue to reject legacy progress surfaces.
+- Skill prompt tests should assert `skills/specs-research/SKILL.md` contains multi-round research/question/synthesis loop guidance and integrated `grill-me` concepts such as one branch at a time, recommended answer, dependency order, and shared understanding.
 
 Validation commands:
 
@@ -187,6 +268,8 @@ If `npm run test:smoke` is unavailable in the current environment, report that a
 - Risk: folder-first scaffold is confused with approved spec content. Mitigation: keep `spec_research` scaffold minimal and mark any generated `PRODUCT.md` as draft/unfinalized.
 - Risk: multiple agents overwrite each other's reports. Mitigation: use purpose-based names plus `nextAvailablePath` suffixing.
 - Risk: research becomes a hidden state machine. Mitigation: store only reports and milestones; let the agent loop manage sequencing.
+- Risk: agents still ask one shallow question and stop. Mitigation: strengthen `specs-research` prompt with explicit research/question/synthesis looping, shared-understanding stop conditions, and questionnaire tool guidance.
+- Risk: batch questionnaires become a long intake form. Mitigation: prompt agents to ask one decision branch or a small cluster of related branch questions, then continue the loop based on answers.
 - Risk: existing users expect `spec_scaffold` to create full starter files. Mitigation: do not change `spec_scaffold`; add `spec_research` as a separate earlier entrypoint.
 
 ## Follow-ups

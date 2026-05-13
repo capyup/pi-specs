@@ -46,13 +46,13 @@ test("skills have matching frontmatter names", async () => {
 
 test("extension registers spec commands and no legacy progress surface", async () => {
   const extension = await readText("extensions/pi-specs.ts");
-  for (const command of ["specs", "specs-product", "specs-tech", "specs-research", "specs-implement", "specs-audit", "specs-help"]) {
+  for (const command of ["specs", "specs-product", "specs-tech", "specs-research", "specs-grill-me", "specs-implement", "specs-audit", "specs-help"]) {
     assert.match(extension, new RegExp(command));
   }
   assert.match(extension, /specs\/SPECS\.yaml/);
   assert.match(extension, /focused spec/);
   assert.match(extension, /MILESTONES\.md/);
-  for (const tool of ["spec_scaffold", "spec_research", "spec_focus", "spec_unfocus", "spec_status", "spec_finish", "spec_append_milestone", "specs_settings_get", "specs_settings_update"]) {
+  for (const tool of ["spec_scaffold", "spec_research", "spec_questionaire", "spec_questionnaire", "spec_focus", "spec_unfocus", "spec_status", "spec_finish", "spec_append_milestone", "specs_settings_get", "specs_settings_update"]) {
     assert.match(extension, new RegExp(tool));
   }
   assert.doesNotMatch(extension, new RegExp("append_" + "spec_milestones"));
@@ -62,6 +62,9 @@ test("extension registers spec commands and no legacy progress surface", async (
   assert.match(extension, /researchReportBasename/);
   assert.match(extension, /nextAvailablePath/);
   assert.match(extension, /observable or quantitative signals/);
+  assert.match(extension, /recommended answer/);
+  assert.match(extension, /free-text correction/);
+  assert.doesNotMatch(extension, /from ["'].*questionnaire/);
   assert.match(extension, /### \$\{formatLocalTimestamp\(\)\} - Milestone/);
   assertRemovedSurfaceAbsent(extension);
 
@@ -74,8 +77,12 @@ test("README documents commands, validation, and progress-free workflow", async 
   for (const snippet of [
     "/specs <feature, issue, or goal>",
     "/specs-research <topic, question, or research purpose>",
+    "/specs-grill-me [spec id, path, or focus area]",
     "spec_scaffold",
     "spec_research",
+    "specs-grill-me",
+    "spec_questionaire",
+    "spec_questionnaire",
     "spec_focus",
     "spec_unfocus",
     "spec_status",
@@ -105,17 +112,32 @@ test("AGENTS and skills document convention discovery and steering alignment", a
   assertRemovedSurfaceAbsent(agents);
   assert.match(agents, /Before every commit, bump the package patch version by exactly one/);
 
-  for (const skill of ["specs", "specs-product", "specs-tech", "specs-implement", "specs-audit"]) {
+  for (const skill of ["specs", "specs-product", "specs-tech", "specs-grill-me", "specs-implement", "specs-audit"]) {
     const text = await readText(`skills/${skill}/SKILL.md`);
     assert.match(text, /AGENTS\.md|PRODUCT\.md/s);
     if (skill !== "specs-product") assert.match(text, /MILESTONES\.md/);
     if (["specs", "specs-implement"].includes(skill)) assert.match(text, /spec_append_milestone/);
     assertRemovedSurfaceAbsent(text);
   }
+  const grillSkill = await readText("skills/specs-grill-me/SKILL.md");
+  assert.match(grillSkill, /focused spec/);
+  assert.match(grillSkill, /PRODUCT\.md/);
+  assert.match(grillSkill, /TECH\.md/);
+  assert.match(grillSkill, /MILESTONES\.md/);
+  assert.match(grillSkill, /research\//);
+  assert.match(grillSkill, /spec_questionaire/);
+  assert.match(grillSkill, /recommended answer/);
+  assert.match(grillSkill, /Do not stop after one ceremonial question/);
+  assertRemovedSurfaceAbsent(grillSkill);
+
   const researchSkill = await readText("skills/specs-research/SKILL.md");
   assert.match(researchSkill, /spec_research/);
+  assert.match(researchSkill, /spec_questionaire/);
   assert.match(researchSkill, /research\//);
   assert.match(researchSkill, /observable|quantitative/);
+  assert.match(researchSkill, /research-question loop/);
+  assert.match(researchSkill, /recommended answer/);
+  assert.match(researchSkill, /shared understanding/);
   assert.match(researchSkill, /spec_append_milestone/);
   assertRemovedSurfaceAbsent(researchSkill);
 

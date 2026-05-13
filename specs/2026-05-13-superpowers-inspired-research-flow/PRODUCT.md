@@ -16,7 +16,7 @@ Pi should support `/specs-research` as a Superpowers-inspired workflow for resea
 
 ## Behavior
 
-1. The workflow is exposed as `/specs-research`, not as a separate `/grill-me` command in the first version.
+1. The workflow is exposed as `/specs-research` for research-driven spec formation and `/specs-grill-me` for grilling the current spec design or progress.
 2. `/specs-research` is both a user-facing interactive slash command and an agent-callable tool surface.
 3. When invoked by a user, `/specs-research <topic>` starts an interactive workflow that can ask questions, create or select a spec, run research, and grill the user.
 4. When invoked by an agent/tool flow, `spec_research` accepts a research purpose, target spec or scaffold id, topic, and optional instructions, then returns guidance and report paths the agent should use.
@@ -30,32 +30,38 @@ Pi should support `/specs-research` as a Superpowers-inspired workflow for resea
 12. Research report names should encode date, phase/purpose, and a short slug, for example `research/2026-05-13-initial-superpowers-mechanisms.md` or `research/2026-05-13-audit-implementation-drift.md`.
 13. After initial research, Pi enters a `grill me` / brainstorming phase that asks pointed questions, challenges assumptions, and surfaces tradeoffs.
 14. The default grilling style is adversarial but collaborative, closer to an investor or architecture review than a gentle intake form.
-15. The grilling phase should ask few questions at a time, but each question should pressure-test value, scope, risks, and hidden assumptions.
-16. During grilling, Pi may propose strawman options and ask the user to accept, reject, or modify them.
-17. Pi should capture the user's answers as evolving product direction, updating `PRODUCT.md` first when observable behavior changes.
-18. Once enough direction exists, Pi produces a compact synthesis with: borrowed ideas, rejected complexity, candidate workflow stages, success criteria, and open questions.
-19. A later audit phase may perform a separate research pass with a different purpose-specific report name, comparing the product direction against implementation, source evidence, or external references.
-20. The later audit phase is distinct from initial research because its purpose, report name, and evidence questions differ; it is not merely "research again."
-21. Research includes literature review, web/source lookup, codebase investigation, design exploration, prototype spikes, controlled experiments, benchmarks, transcript comparisons, and any other inquiry that can define observations or measurable outcomes before changing direction.
-22. A research task should make its purpose explicit and, when experimental, define observable, statistical, or quantitative signals before drawing conclusions.
-23. Research reports should preserve the observation -> feedback -> modification -> iteration loop so later agents can see what was tried, what was observed, and how the spec or plan changed.
-24. Product-spec, tech-spec, and implementation prompts should remind agents that they may launch additional `/specs-research` work whenever uncertainty, missing evidence, risky assumptions, or measurable design tradeoffs appear.
-25. The workflow should not require a state machine or durable research-status database; the agent loop remains responsible for planning, sequencing, and deciding when enough research has been done.
-26. The workflow should expose non-goals clearly so the team does not accidentally adopt Superpowers' whole process.
-27. The workflow should remain compatible with the existing `pi-specs` model: `PRODUCT.md` owns behavior, `TECH.md` is added only when implementation planning becomes necessary, and `MILESTONES.md` records meaningful decisions or phase changes.
-28. If external research is unavailable, Pi should continue with local evidence and explicitly mark any claims that need later verification.
-29. If the user answers a grilling question by changing the desired behavior, Pi should update the product spec before any technical plan or implementation.
-30. If the user asks to stop after brainstorming, the workflow should leave a readable draft with open questions rather than pretending the work is complete.
+15. The grilling phase should not stop after one symbolic question; it should continue through research -> question -> answer -> follow-up research or next question -> synthesis loops until the agent can state the shared understanding and remaining risks.
+16. The agent should ask one decision branch at a time, provide a recommended answer with each question, resolve dependencies in order, and explore the codebase when the answer can be discovered without asking the user.
+17. During grilling, Pi should use a specs-specific questionnaire tool for interactive questions when available, allowing recommended answers and free-text correction while preserving Q&A records for later synthesis.
+18. The questionnaire tool is implemented inside `pi-specs`; it must not depend on an external questionnaire plugin being installed.
+19. The questionnaire tool is exposed as `spec_questionaire` for compatibility with the user's requested spelling and `spec_questionnaire` as the canonical alias.
+20. `/specs-grill-me` should resolve the focused spec by default, read its `PRODUCT.md`, `TECH.md` when present, `MILESTONES.md`, and relevant `research/` reports, then grill the user about design gaps, progress risks, missing evidence, and next decisions.
+21. During grilling, Pi may propose strawman options and ask the user to accept, reject, or modify them.
+22. Pi should capture the user's answers as evolving product direction, updating `PRODUCT.md` first when observable behavior changes.
+23. Once enough direction exists, Pi produces a compact synthesis with: borrowed ideas, rejected complexity, candidate workflow stages, success criteria, and open questions.
+22. A later audit phase may perform a separate research pass with a different purpose-specific report name, comparing the product direction against implementation, source evidence, or external references.
+23. The later audit phase is distinct from initial research because its purpose, report name, and evidence questions differ; it is not merely "research again."
+24. Research includes literature review, web/source lookup, codebase investigation, design exploration, prototype spikes, controlled experiments, benchmarks, transcript comparisons, and any other inquiry that can define observations or measurable outcomes before changing direction.
+25. A research task should make its purpose explicit and, when experimental, define observable, statistical, or quantitative signals before drawing conclusions.
+26. Research reports should preserve the observation -> feedback -> modification -> iteration loop so later agents can see what was tried, what was observed, and how the spec or plan changed.
+27. Product-spec, tech-spec, and implementation prompts should remind agents that they may launch additional `/specs-research` work whenever uncertainty, missing evidence, risky assumptions, or measurable design tradeoffs appear.
+28. The workflow should not require a state machine or durable research-status database; the agent loop remains responsible for planning, sequencing, and deciding when enough research has been done.
+29. The workflow should expose non-goals clearly so the team does not accidentally adopt Superpowers' whole process.
+30. The workflow should remain compatible with the existing `pi-specs` model: `PRODUCT.md` owns behavior, `TECH.md` is added only when implementation planning becomes necessary, and `MILESTONES.md` records meaningful decisions or phase changes.
+31. If external research is unavailable, Pi should continue with local evidence and explicitly mark any claims that need later verification.
+32. If the user answers a grilling question by changing the desired behavior, Pi should update the product spec before any technical plan or implementation.
+33. If the user asks to stop after brainstorming, the workflow should leave a readable draft with open questions rather than pretending the work is complete.
 
 ## Candidate Workflow Stages
 
 1. `orientation`: restate the task, identify whether this is research, spec, audit, implementation, or mixed work.
 2. `early scaffold`: create or focus the canonical spec directory and research subfolder before substantive research so reports have a stable destination.
 3. `purpose-directed research`: inspect primary sources, docs/code, selected commentary, or experimental evidence for the requested research purpose; save a purpose-named report.
-4. `adversarial grill me`: ask Socratic, decision-driving questions; challenge vague goals, hidden constraints, value, risks, and tradeoffs.
-5. `synthesis`: convert answers and observations into concise product direction, `PRODUCT.md` updates, decision notes, or a later `TECH.md` seed.
-6. `research during product/tech/implement`: allow agents to launch additional purpose-named research whenever a later phase exposes uncertainty or a testable hypothesis.
-7. `deep audit later`: run a separate purpose-named evidence pass only after the desired behavior is clearer.
+4. `adversarial grill me`: use `spec_questionaire` / `spec_questionnaire` when useful to ask one decision branch or a small cluster of related branch questions, each with a recommended answer and free-text correction.
+5. `research-question loop`: after each answer, decide whether to research the next dependency, ask the next adversarial question, or synthesize; do not stop after a single shallow question.
+6. `synthesis`: convert answers and observations into concise product direction, `PRODUCT.md` updates, decision notes, or a later `TECH.md` seed.
+7. `research during product/tech/implement`: allow agents to launch additional purpose-named research whenever a later phase exposes uncertainty or a testable hypothesis.
+8. `deep audit later`: run a separate purpose-named evidence pass only after the desired behavior is clearer.
 
 ## Borrow From Superpowers
 
@@ -78,13 +84,15 @@ Pi should support `/specs-research` as a Superpowers-inspired workflow for resea
 ## Goals / Non-goals
 
 - Goal: define `/specs-research` as an inspectable research-first slash-command workflow inspired by Superpowers.
+- Goal: define `/specs-grill-me` as a focused entrypoint for grilling the current spec design, evidence, and implementation progress.
 - Goal: expose the same workflow as an agent-callable tool so agents can start purpose-directed research inside spec formation.
 - Goal: make research available from product, tech, and implementation prompts so development can be research-driven as well as spec-driven.
 - Goal: support broad research methods, including external literature, code archaeology, prototypes, benchmarks, experiments, and measurable observation loops.
 - Goal: establish spec folder names and subdirectory structure before research starts so pre-spec research reports have a durable destination.
-- Goal: make adversarial `grill me` a first-class brainstorming phase inside `/specs-research`.
+- Goal: make adversarial, multi-round `grill me` a first-class brainstorming phase inside `/specs-research`.
 - Goal: separate initial mechanism research from later formal audit research through different report purposes and filenames.
 - Goal: preserve the existing spec-driven hierarchy: behavior first, technical plan only when useful, milestone log for history.
+- Goal: provide `spec_questionaire` / `spec_questionnaire` as specs-owned interactive tools for grilling questions and Q&A records, without relying on an external questionnaire plugin.
 - Goal: keep the workflow small enough that users can understand and steer it mid-session.
 - Non-goal: clone Superpowers or reimplement its full skill library.
 - Non-goal: require TDD, worktrees, or subagents for research-only work.
@@ -94,15 +102,18 @@ Pi should support `/specs-research` as a Superpowers-inspired workflow for resea
 ## Success Criteria
 
 1. A user can invoke `/specs-research <topic>` and get a researched, question-driven brainstorming session before any implementation plan.
-2. An agent can invoke the corresponding tool to start research inside an existing or newly scaffolded spec directory.
-3. Research reports are durable, purpose-named files, allowing multiple reports from different phases or parallel agents to coexist.
-4. Product, tech, and implementation prompts all remind agents that additional research is available when uncertainty or testable hypotheses appear.
-5. Research reports can document experiments with predeclared observable or quantitative signals, not only written-source summaries.
-6. The workflow records which Superpowers ideas are adopted and which are explicitly rejected.
-7. The agent asks fewer, sharper, more adversarial questions instead of overwhelming the user with a long intake form.
-8. Initial research is deep enough to explain the reference system's mechanisms before grilling begins.
-9. A later audit can reuse the synthesized direction and prior reports without being a duplicate of initial research.
-10. The spec can evolve incrementally as the user answers questions.
+2. A user can invoke `/specs-grill-me` with no arguments and have the agent grill the currently focused spec's design or progress.
+3. An agent can invoke the corresponding tool to start research inside an existing or newly scaffolded spec directory.
+4. Research reports are durable, purpose-named files, allowing multiple reports from different phases or parallel agents to coexist.
+5. Product, tech, and implementation prompts all remind agents that additional research is available when uncertainty or testable hypotheses appear.
+6. Research reports can document experiments with predeclared observable or quantitative signals, not only written-source summaries.
+7. The workflow records which Superpowers ideas are adopted and which are explicitly rejected.
+8. The agent asks fewer, sharper, more adversarial questions instead of overwhelming the user with a long intake form.
+9. The agent continues through multiple research/question/synthesis turns when the first answer exposes unresolved dependencies.
+10. Initial research is deep enough to explain the reference system's mechanisms before grilling begins.
+11. The specs-owned questionnaire tools work even when no external questionnaire package is installed.
+12. A later audit can reuse the synthesized direction and prior reports without being a duplicate of initial research.
+13. The spec can evolve incrementally as the user answers questions.
 
 ## Open questions
 

@@ -16,6 +16,7 @@ This package is adapted from Warp's internal spec-driven workflow and generalize
 - `specs-product` - write or revise a behavior-first `PRODUCT.md` from the user/caller perspective.
 - `specs-tech` - write or revise a codebase-grounded `TECH.md` with implementation plan, risks, and validation.
 - `specs-research` - run purpose-directed research inside a spec workflow, including source/code investigation, prototypes, benchmarks, experiments, and observable feedback loops.
+- `specs-grill-me` - grill the current spec design, research evidence, technical plan, or implementation progress with adversarial questions.
 - `specs-implement` - implement approved specs while keeping specs, code, and tests synchronized.
 - `specs-audit` - audit a repository's spec workflow, spec quality, or spec/code/test drift.
 
@@ -28,6 +29,7 @@ The extension registers direct commands so you do not have to remember skill nam
 /specs-product <ticket/feature and desired behavior>
 /specs-tech <spec path or feature>
 /specs-research <topic, question, or research purpose>
+/specs-grill-me [spec id, path, or focus area]
 /specs-implement <spec directory or feature>
 /specs-audit [spec directory, issue, or area]
 /specs-help
@@ -39,6 +41,7 @@ The extension also registers helper tools that the model can call when useful:
 
 - `spec_scaffold` - creates `PRODUCT.md`, `MILESTONES.md`, optional `TECH.md`, and a `SPECS.yaml` registry entry.
 - `spec_research` - creates or focuses a spec folder, prepares `research/`, creates a purpose-named research report, and returns guidance for the agent.
+- `spec_questionaire` / `spec_questionnaire` - ask specs-specific grilling questions with recommended answers, free-text correction, and Q&A records.
 - `spec_focus` / `spec_unfocus` - set or clear the currently focused spec.
 - `spec_status` - summarizes lifecycle state, artifact presence, latest audit metadata, and focus state.
 - `spec_finish` - runs local completion checks and marks a spec completed; audit execution is deferred to a future `spec_audit` flow.
@@ -109,6 +112,12 @@ Run research before or during spec work:
 /specs-research initial-superpowers-mechanisms for a lightweight research-driven spec workflow
 ```
 
+Grill the current focused spec design or progress:
+
+```text
+/specs-grill-me validation and remaining product risks
+```
+
 Implement approved specs:
 
 ```text
@@ -174,6 +183,8 @@ The core is a numbered `Behavior` section with testable invariants. It should co
 A good `research/YYYY-MM-DD-<purpose>.md` captures evidence before a product, technical, implementation, or audit decision changes direction. Research can mean literature or web review, source/code investigation, prototype spikes, benchmarks, transcript comparisons, controlled experiments, or any inquiry that can produce observations or measurable signals.
 
 It should record the purpose, method, observations, conclusions, impact on the spec or plan, and remaining uncertainty. For experiments, state the hypothesis or question, the observable or quantitative signal, the setup, the result, and limits of interpretation.
+
+After research, `/specs-research` should normally run a multi-round research/question/synthesis loop. Use `/specs-grill-me` when the spec already exists and the goal is to pressure-test its current design, evidence, technical plan, or progress. Agents should use `spec_questionaire` / `spec_questionnaire` to grill one decision branch at a time, include a recommended answer, let the user accept/reject/modify, then continue with follow-up research, another question, or spec synthesis. The intended behavior is not a single ceremonial clarifying question. The questionnaire tools are implemented inside `pi-specs`; they do not require an external questionnaire plugin.
 
 ## What Makes a Good Tech Spec
 
@@ -245,6 +256,8 @@ pi-specs/
     │   └── SKILL.md
     ├── specs-audit/
     │   └── SKILL.md
+    ├── specs-grill-me/
+    │   └── SKILL.md
     ├── specs-implement/
     │   └── SKILL.md
     ├── specs-research/
@@ -268,7 +281,7 @@ The tests use Node's built-in test runner with TypeScript type stripping, so no 
 - package manifest and pi resource shape
 - skill frontmatter consistency
 - extension shape and spec command registration
-- README/AGENTS coverage for AGENTS discovery, steering alignment, lifecycle tools, research reports, and progress-free spec scaffolding
+- README/AGENTS coverage for AGENTS discovery, steering alignment, lifecycle tools, research reports, specs-owned questionnaire tools, and progress-free spec scaffolding
 
 Smoke-test local pi loading:
 

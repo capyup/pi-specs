@@ -29,6 +29,12 @@ const COMMANDS = [
 		usage: "/specs-research <topic, question, or research purpose>",
 	},
 	{
+		name: "specs-grill-me",
+		skill: "specs-grill-me",
+		description: "Grill the current spec design or progress with adversarial questions",
+		usage: "/specs-grill-me [spec id, path, or focus area]",
+	},
+	{
 		name: "specs-implement",
 		skill: "specs-implement",
 		description: "Implement approved PRODUCT.md and TECH.md specs while keeping them current",
@@ -536,6 +542,103 @@ async function writeSettings(specRoot: string, settings: SpecSettings) {
 	await writeFile(join(specRoot, "SPECS.settings.yaml"), `audit_provider: ${yamlValue(settings.audit_provider)}\naudit_model: ${yamlValue(settings.audit_model)}\n`);
 }
 
+type SpecQuestionnaireQuestion = {
+	id: string;
+	question: string;
+	context?: string;
+	options?: string[];
+	recommended?: number;
+};
+
+type SpecQuestionnaireAnswer = {
+	id: string;
+	question: string;
+	answer: string;
+	wasCustom: boolean;
+};
+
+const specQuestionnaireParameters = Type.Object({
+	questions: Type.Array(
+		Type.Object({
+			id: Type.String({ description: "Short identifier, e.g. scope, risk, success-signal" }),
+			question: Type.String({ description: "The adversarial question or decision to ask." }),
+			context: Type.Optional(Type.String({ description: "Why this matters, including tradeoffs or downstream dependency." })),
+			options: Type.Optional(Type.Array(Type.String({ description: "Suggested answer option." }))),
+			recommended: Type.Optional(Type.Integer({ minimum: 0, description: "0-based recommended option." })),
+		}),
+		{ minItems: 1 },
+	),
+});
+
+function normalizeSpecQuestions(rawQuestions: SpecQuestionnaireQuestion[]): Array<SpecQuestionnaireQuestion & { id: string; options: string[] }> {
+	const seenIds = new Set<string>();
+	return rawQuestions.map((question, index) => {
+		let id = question.id.trim() || `q${index + 1}`;
+		if (seenIds.has(id)) id = `${id}-${index + 1}`;
+		seenIds.add(id);
+		const options = (question.options ?? []).map((option) => option.trim()).filter(Boolean);
+		const recommended = question.recommended !== undefined && question.recommended >= 0 && question.recommended < options.length ? question.recommended : undefined;
+		return { ...question, id, options, recommended };
+	});
+}
+
+function formatSpecQuestionnaireAnswers(questions: Array<SpecQuestionnaireQuestion & { id: string; options: string[] }>, answers: SpecQuestionnaireAnswer[]): string {
+	return answers.map((answer) => {
+		const question = questions.find((candidate) => candidate.id === answer.id);
+		const lines = [`**Q:** ${answer.question}`];
+		if (question?.context) lines.push(`\n${question.context}`);
+		if (question && question.options.length > 0) lines.push(`\nOptions: ${question.options.join(" / ")}`);
+		lines.push(`\n**A:** ${answer.answer}`);
+		return lines.join("");
+	}).join("\n\n---\n\n");
+}
+
+function registerSpecQuestionnaireTool(pi: ExtensionAPI, name: "spec_questionaire" | "spec_questionnaire") {
+	pi.registerTool({
+		name,
+		label: name === "spec_questionaire" ? "Spec Questionaire" : "Spec Questionnaire",
+		description: "Ask the user specs-specific grilling questions with recommended answers and free-text correction. Use for research-driven adversarial brainstorming.",
+		promptSnippet: "Grill the user with specs-specific questions and capture Q&A records.",
+		promptGuidelines: [
+			"Use during /specs-research when user decisions are needed after research.",
+			"Ask one decision branch at a time, or a small cluster of tightly related branch questions.",
+			"Provide a recommended answer for each question so the user can accept, reject, or modify it.",
+			"After answers, decide whether to research more, ask the next branch, or synthesize into PRODUCT.md/TECH.md.",
+		],
+		parameters: specQuestionnaireParameters,
+		async execute(_toolCallId, params, _signal, _onUpdate, ctx) {
+			if (!ctx.hasUI) {
+				return { content: [{ type: "text", text: "Error: UI not available (running in non-interactive mode)." }], details: { questions: [], answers: [], cancelled: true }, isError: true };
+			}
+			const questions = normalizeSpecQuestions(params.questions);
+			const answers: SpecQuestionnaireAnswer[] = [];
+			for (const question of questions) {
+				const title = question.context ? `${question.question}\n\n${question.context}` : question.question;
+				const displayOptions = question.options.map((option, index) => index === question.recommended ? `★ ${option}` : option);
+				const customOption = "Write your own answer...";
+				let answer: string | undefined;
+				let wasCustom = false;
+				if (displayOptions.length > 0) {
+					const choice = await ctx.ui.select(title, [...displayOptions, customOption]);
+					if (!choice) return { content: [{ type: "text", text: "User cancelled the spec questionnaire." }], details: { questions, answers, cancelled: true } };
+					if (choice === customOption) {
+						answer = await ctx.ui.input(question.question, "Type your answer");
+						wasCustom = true;
+					} else {
+						answer = choice.replace(/^★\s*/, "");
+					}
+				} else {
+					answer = await ctx.ui.input(title, "Type your answer");
+					wasCustom = true;
+				}
+				if (answer === undefined) return { content: [{ type: "text", text: "User cancelled the spec questionnaire." }], details: { questions, answers, cancelled: true } };
+				answers.push({ id: question.id, question: question.question, answer, wasCustom });
+			}
+			return { content: [{ type: "text", text: formatSpecQuestionnaireAnswers(questions, answers) }], details: { questions, answers, cancelled: false } };
+		},
+	});
+}
+
 export default function piSpecsExtension(pi: ExtensionAPI) {
 	for (const command of COMMANDS) {
 		pi.registerCommand(command.name, {
@@ -550,11 +653,14 @@ export default function piSpecsExtension(pi: ExtensionAPI) {
 		description: "Show spec-driven development commands from pi-specs",
 		handler: async (_args, ctx) => {
 			const lines = COMMANDS.map((command) => `${command.usage} - ${command.description}`);
-			lines.push("Tools: spec_scaffold, spec_research, spec_focus, spec_unfocus, spec_status, spec_finish, spec_append_milestone, specs_settings_get, specs_settings_update");
+			lines.push("Tools: spec_scaffold, spec_research, spec_questionaire, spec_questionnaire, spec_focus, spec_unfocus, spec_status, spec_finish, spec_append_milestone, specs_settings_get, specs_settings_update");
 			lines.push("/specs-help - Show this help");
 			ctx.ui.notify(lines.join("\n"), "info");
 		},
 	});
+
+	registerSpecQuestionnaireTool(pi, "spec_questionaire");
+	registerSpecQuestionnaireTool(pi, "spec_questionnaire");
 
 	pi.registerTool({
 		name: "spec_research",

@@ -34,3 +34,19 @@ Drafted `TECH.md` for `/specs-research` and `spec_research`. The plan keeps `spe
 ### 2026-05-13 16:21:23 - Milestone
 
 Implemented the first pass of `/specs-research` and `spec_research`: added command registration, a research tool that creates/focuses spec folders and purpose-named reports under `research/`, the new `specs-research` skill, research-driven updates across product/tech/implementation skills, README/AGENTS documentation, and package-shape tests. Validation passed with `npm test` and `npm run test:smoke`.
+
+### 2026-05-13 16:55:32 - Milestone
+
+Updated PRODUCT.md and TECH.md for user steering that `/specs-research` still felt too shallow. The spec now requires an explicit multi-round research/question/synthesis loop without adding a state machine, ports the installed questionnaire UI as specs-owned `spec_questionaire` / `spec_questionnaire` tools, and integrates the installed `grill-me` skill's procedure into the specs-research prompt.
+
+### 2026-05-13 17:05:55 - Milestone
+
+Implemented the stronger grill loop: added specs-owned `spec_questionaire` and `spec_questionnaire` tools with recommended answers and free-text Q&A records, integrated the installed `grill-me` procedure into `skills/specs-research/SKILL.md`, updated README/tests, and validated with `npm test` plus `npm run test:smoke`. The prompt now explicitly requires multi-round research -> question -> follow-up research/question -> synthesis behavior without adding a state machine.
+
+### 2026-05-13 17:12:13 - Milestone
+
+Updated specs for new steering: add `/specs-grill-me` as a dedicated entrypoint for grilling the current focused spec's design/progress, and explicitly guarantee `spec_questionaire` / `spec_questionnaire` are built into pi-specs rather than external questionnaire plugin dependencies.
+
+### 2026-05-13 17:16:24 - Milestone
+
+Implemented `/specs-grill-me` as a dedicated focused-spec grilling entrypoint and added `skills/specs-grill-me/SKILL.md`. Updated README/tests to document and verify the command, and added assertions that `spec_questionaire` / `spec_questionnaire` are implemented inside `extensions/pi-specs.ts` rather than importing an external questionnaire plugin. Validation passed with `npm test` and `npm run test:smoke`.
